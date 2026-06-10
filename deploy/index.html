@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roleta do Hexa – Costaneiras Grill</title>
+  <style>
+    :root {
+      --green:       #009C3B;
+      --green-dark:  #006622;
+      --green-xdark: #003d15;
+      --yellow:      #FFDF00;
+      --gold:        #FFB800;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: radial-gradient(ellipse at 40% 0%, #00AA44 0%, #006622 45%, #003d15 100%);
+      min-height: 100vh;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: #fff;
+      overflow-x: hidden;
+    }
+
+    /* dot grid */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none;
+      background-image: radial-gradient(circle at 2px 2px, rgba(255,223,0,.07) 1px, transparent 0);
+      background-size: 38px 38px;
+    }
+
+    /* ── HEADER ─────────────────────────────── */
+    .header {
+      text-align: center;
+      padding: 28px 20px 14px;
+    }
+    .header h1 {
+      font-size: clamp(1.8rem, 6vw, 3rem);
+      font-weight: 900;
+      color: var(--yellow);
+      letter-spacing: 3px;
+      text-shadow: 0 2px 12px rgba(0,0,0,.45), 0 0 35px rgba(255,223,0,.2);
+    }
+    .header .sub {
+      font-size: .95rem;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.75);
+      margin-top: 4px;
+    }
+    .header .tip {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 8px 22px;
+      background: rgba(0,0,0,.22);
+      border: 1px solid rgba(255,223,0,.3);
+      border-radius: 30px;
+      font-size: 1rem;
+      color: rgba(255,255,255,.9);
+    }
+
+    /* ── WHEEL AREA ──────────────────────────── */
+    .wheel-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 26px;
+      padding: 10px 20px 30px;
+    }
+
+    .wheel-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* pulse ring */
+    .wheel-glow {
+      position: absolute;
+      inset: -12px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,223,0,.12) 0%, transparent 70%);
+      animation: glow 2.2s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes glow {
+      0%,100% { transform: scale(1); opacity: .7; }
+      50%      { transform: scale(1.06); opacity: 1; }
+    }
+
+    /* pointer arrow */
+    .wheel-pointer {
+      position: absolute;
+      top: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,.6));
+    }
+
+    #wheelCanvas {
+      display: block;
+      border-radius: 50%;
+      border: 5px solid var(--yellow);
+      box-shadow: 0 0 45px rgba(255,223,0,.28), 0 12px 45px rgba(0,0,0,.55);
+    }
+
+    /* ── SPIN BUTTON ─────────────────────────── */
+    .spin-btn {
+      background: linear-gradient(135deg, var(--yellow) 0%, var(--gold) 100%);
+      color: var(--green-xdark);
+      border: none;
+      padding: 16px 62px;
+      font-size: 1.25rem;
+      font-weight: 900;
+      border-radius: 50px;
+      cursor: pointer;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      box-shadow: 0 6px 28px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.25);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .spin-btn:hover:not(:disabled) {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 36px rgba(0,0,0,.5);
+    }
+    .spin-btn:active:not(:disabled) { transform: translateY(0); }
+    .spin-btn:disabled { opacity: .35; cursor: default; }
+
+    /* ── ALREADY SPUN BOX ────────────────────── */
+    .already-box {
+      display: none;
+      background: rgba(255,223,0,.08);
+      border: 2px solid rgba(255,223,0,.45);
+      border-radius: 16px;
+      padding: 22px 30px;
+      text-align: center;
+      max-width: 380px;
+    }
+    .already-box h3 { color: var(--yellow); margin-bottom: 8px; }
+    .already-box .saved-code {
+      font-family: 'Courier New', monospace;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--yellow);
+      letter-spacing: 2px;
+      background: rgba(0,0,0,.25);
+      padding: 8px 16px;
+      border-radius: 8px;
+      margin: 10px 0;
+    }
+    .goto-btn {
+      background: var(--yellow);
+      color: var(--green-xdark);
+      border: none;
+      padding: 12px 32px;
+      font-size: .95rem;
+      font-weight: 700;
+      border-radius: 25px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background .15s;
+    }
+    .goto-btn:hover { background: var(--gold); }
+
+    /* ── RESULT MODAL ────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.88);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.show { display: flex; }
+
+    .result-card {
+      background: linear-gradient(145deg, #004d1a, #009C3B);
+      border: 3px solid var(--yellow);
+      border-radius: 24px;
+      padding: 40px 34px;
+      text-align: center;
+      max-width: 430px;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+      animation: popIn .42s cubic-bezier(.34,1.56,.64,1);
+      box-shadow: 0 0 60px rgba(255,223,0,.22), 0 20px 60px rgba(0,0,0,.55);
+    }
+    @keyframes popIn {
+      from { transform: scale(.4) rotate(-6deg); opacity: 0; }
+      to   { transform: scale(1)  rotate(0deg);  opacity: 1; }
+    }
+
+    .result-card .r-emoji    { font-size: 3.5rem; }
+    .result-card .r-parabens { font-size: 1.3rem; margin-top: 4px; color: rgba(255,255,255,.9); }
+    .result-card .r-value    {
+      font-size: clamp(4rem, 14vw, 5.5rem);
+      font-weight: 900;
+      color: var(--yellow);
+      line-height: 1;
+      text-shadow: 0 0 30px rgba(255,223,0,.4);
+      margin: 6px 0 2px;
+    }
+    .result-card .r-sub      { color: rgba(255,255,255,.7); font-size: .92rem; margin-bottom: 20px; }
+
+    .coupon-box {
+      background: rgba(0,0,0,.28);
+      border: 2px dashed rgba(255,223,0,.6);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 22px;
+    }
+    .coupon-box .cb-label { font-size: .75rem; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,.6); }
+    .coupon-box .cb-code  {
+      font-family: 'Courier New', monospace;
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: var(--yellow);
+      letter-spacing: 3px;
+      word-break: break-all;
+    }
+    .coupon-box .cb-valid { font-size: .75rem; color: rgba(255,255,255,.55); margin-top: 6px; }
+    .copy-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 12px; padding: 8px 20px;
+      background: rgba(255,223,0,.15); border: 1.5px solid rgba(255,223,0,.5);
+      border-radius: 8px; color: var(--yellow); font-size: .88rem; font-weight: 700;
+      cursor: pointer; letter-spacing: 1px; transition: background .2s;
+    }
+    .copy-btn:hover { background: rgba(255,223,0,.28); }
+    .copy-btn.copied { background: rgba(0,200,100,.2); border-color: #0c6; color: #0c6; }
+
+    .claim-btn {
+      width: 100%;
+      background: linear-gradient(135deg, var(--yellow), var(--gold));
+      color: var(--green-xdark);
+      border: none;
+      padding: 16px;
+      font-size: 1.05rem;
+      font-weight: 900;
+      border-radius: 50px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.35);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .claim-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,.45); }
+
+    .r-note { font-size: .73rem; color: rgba(255,255,255,.45); margin-top: 12px; }
+
+    /* ── CONFETTI ────────────────────────────── */
+    .confetti-piece {
+      position: fixed;
+      top: -20px;
+      opacity: 0;
+      z-index: 300;
+      pointer-events: none;
+      border-radius: 2px;
+      animation: cFall linear forwards;
+    }
+    @keyframes cFall {
+      0%   { opacity: 1; transform: translateY(0)     rotate(0deg); }
+      100% { opacity: 0; transform: translateY(100vh) rotate(800deg); }
+    }
+
+    /* ── FOOTER ──────────────────────────────── */
+    .footer {
+      text-align: center;
+      padding: 20px;
+      font-size: .72rem;
+      color: rgba(255,255,255,.3);
+    }
+
+    /* ═══════════════════════════════════════════
+       ADMIN PANEL
+    ═══════════════════════════════════════════ */
+    #admin-panel {
+      display: none;
+      padding: 20px;
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    #admin-panel h2 {
+      color: var(--yellow);
+      font-size: 1.8rem;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .adm-sub { text-align: center; color: rgba(255,255,255,.6); font-size: .88rem; margin-bottom: 22px; }
+    .adm-note {
+      background: rgba(255,200,0,.08);
+      border: 1px solid rgba(255,223,0,.3);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: .82rem;
+      color: rgba(255,255,255,.65);
+      margin-bottom: 20px;
+    }
+
+    /* stats */
+    .stats-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+    .stat-box {
+      flex: 1; min-width: 110px;
+      background: rgba(0,0,0,.3);
+      border: 1px solid rgba(255,223,0,.28);
+      border-radius: 12px;
+      padding: 14px 18px;
+      text-align: center;
+    }
+    .stat-box .sn { font-size: 2.1rem; font-weight: 900; color: var(--yellow); }
+    .stat-box .sl { font-size: .72rem; text-transform: uppercase; color: rgba(255,255,255,.6); margin-top: 2px; }
+
+    /* tabs */
+    .day-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+    .day-tab {
+      background: rgba(0,0,0,.3);
+      border: 1px solid rgba(255,223,0,.28);
+      color: #fff;
+      padding: 7px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: .83rem;
+      transition: all .12s;
+    }
+    .day-tab:hover, .day-tab.active {
+      background: var(--yellow);
+      color: var(--green-xdark);
+      border-color: var(--yellow);
+      font-weight: 700;
+    }
+
+    /* day card */
+    .day-card {
+      background: rgba(0,0,0,.28);
+      border: 1px solid rgba(255,223,0,.25);
+      border-radius: 14px;
+      padding: 18px;
+    }
+    .day-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,223,0,.18);
+      padding-bottom: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .day-card-header h3 { color: var(--yellow); font-size: 1.05rem; }
+    .today-badge {
+      background: var(--yellow);
+      color: var(--green-xdark);
+      font-size: .72rem;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 10px;
+    }
+    .day-usage { font-size: .82rem; color: rgba(255,255,255,.6); }
+
+    /* slot group */
+    .slot-group { margin-bottom: 14px; }
+    .slot-title {
+      font-size: .78rem;
+      font-weight: 700;
+      color: rgba(255,255,255,.55);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 7px;
+    }
+    .code-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 7px;
+    }
+    .code-item {
+      background: rgba(0,100,50,.25);
+      border: 1px solid rgba(255,223,0,.18);
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .code-item.used {
+      background: rgba(120,0,0,.25);
+      border-color: rgba(255,80,80,.25);
+    }
+    .code-item .ci-code {
+      font-family: 'Courier New', monospace;
+      font-size: .82rem;
+      font-weight: 700;
+      color: var(--yellow);
+      word-break: break-all;
+    }
+    .code-item.used .ci-code { text-decoration: line-through; opacity: .55; }
+    .mark-btn {
+      background: rgba(255,223,0,.15);
+      border: 1px solid rgba(255,223,0,.35);
+      color: var(--yellow);
+      font-size: .68rem;
+      padding: 3px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .12s;
+      flex-shrink: 0;
+    }
+    .mark-btn:hover { background: var(--yellow); color: var(--green-xdark); }
+    .code-item.used .mark-btn {
+      background: rgba(255,80,80,.15);
+      border-color: rgba(255,80,80,.35);
+      color: #ff8888;
+    }
+    .code-item.used .mark-btn:hover { background: #ff4444; color: #fff; border-color: #ff4444; }
+
+    .adm-export {
+      margin-top: 20px;
+      text-align: right;
+    }
+    .export-btn {
+      background: rgba(255,223,0,.12);
+      border: 1px solid rgba(255,223,0,.35);
+      color: var(--yellow);
+      padding: 9px 22px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: .85rem;
+      transition: all .12s;
+    }
+    .export-btn:hover { background: var(--yellow); color: var(--green-xdark); }
+  </style>
+</head>
+<body>
+<div id="bg-hexa" style="position:fixed;inset:0;background:url('./hexa-bg.jpg') center/cover no-repeat;filter:blur(6px) brightness(0.42) saturate(1.3);transform:scale(1.06);z-index:-1;pointer-events:none;"></div>
+
+<!-- ════════════════════════════════════
+     CUSTOMER VIEW
+════════════════════════════════════ -->
+<div id="customer-view">
+  <div class="header">
+    <h1>🏆 ROLETA DO HEXA</h1>
+    <div class="sub">Costaneiras Grill</div>
+    <div class="tip">🎯 Gire a roleta e ganhe seu desconto especial!</div>
+  </div>
+
+  <div class="wheel-section">
+    <!-- Wheel -->
+    <div class="wheel-wrapper">
+      <div class="wheel-glow"></div>
+      <!-- Pointer -->
+      <svg class="wheel-pointer" width="40" height="52" viewBox="0 0 40 52">
+        <circle cx="20" cy="6" r="7" fill="#FFDF00" stroke="#003d15" stroke-width="2"/>
+        <polygon points="20,50 1,10 39,10" fill="#FFDF00" stroke="#003d15" stroke-width="2.5" stroke-linejoin="round"/>
+      </svg>
+      <canvas id="wheelCanvas"></canvas>
+    </div>
+
+    <button class="spin-btn" id="spinBtn" onclick="spinWheel()">
+      🎰 GIRAR ROLETA!
+    </button>
+
+    <!-- Already spun today -->
+    <div class="already-box" id="alreadyBox">
+      <h3>✅ Você já girou hoje!</h3>
+      <p style="color:rgba(255,255,255,.7);font-size:.88rem">Seu cupom do dia:</p>
+      <div class="saved-code" id="savedCodeDisplay"></div>
+      <button class="goto-btn" onclick="goToMenu()">🍽️ Ir para o Cardápio</button>
+      <p style="color:rgba(255,255,255,.45);font-size:.72rem;margin-top:8px">Válido somente hoje até meia-noite</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     RESULT MODAL
+════════════════════════════════════ -->
+<div class="modal-overlay" id="resultModal">
+  <div class="result-card">
+    <div class="r-emoji"  id="rEmoji">🎉</div>
+    <div class="r-parabens">Parabéns! Você ganhou</div>
+    <div class="r-value"  id="rValue">50%</div>
+    <div class="r-sub">de desconto no seu pedido!</div>
+    <div class="coupon-box">
+      <div class="cb-label">📋 Seu Cupom</div>
+      <div class="cb-code"  id="rCode">HEXA-XXXXX</div>
+      <div class="cb-valid" id="rValid">Válido hoje até meia-noite</div>
+      <button class="copy-btn" id="copyBtn" onclick="copyCoupon()">📋 COPIAR CUPOM</button>
+    </div>
+    <button class="claim-btn" onclick="claimAndGo()">
+      🍽️ USAR DESCONTO AGORA!
+    </button>
+    <p class="r-note">Apresente esse cupom ao realizar seu pedido</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     ADMIN PANEL
+════════════════════════════════════ -->
+<div id="admin-panel">
+  <h2>⚙️ Painel Admin — Roleta do Hexa</h2>
+  <p class="adm-sub">Costaneiras Grill · Promoção 7 dias · 50 cupons/dia</p>
+
+  <!-- ── Configurar Dias Ativos ── -->
+  <details id="cfg-section" open style="margin-bottom:18px;border:1.5px solid rgba(255,223,0,.5);border-radius:10px;overflow:hidden;">
+    <summary style="padding:12px 16px;background:rgba(0,0,0,.45);cursor:pointer;color:var(--yellow);font-weight:700;font-size:.95rem;list-style:none;display:flex;align-items:center;gap:8px;">
+      📅 Configurar dias e horários ativos
+    </summary>
+    <div style="padding:16px;background:rgba(0,0,0,.25);">
+
+      <!-- datas ativas -->
+      <p style="color:rgba(255,255,255,.65);font-size:.82rem;margin:0 0 8px">
+        <strong style="color:var(--yellow)">Dias ativos:</strong>
+      </p>
+      <div id="cfg-current-dates" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;min-height:28px;"></div>
+
+      <!-- input nova data -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <input id="cfg-new-date" type="date"
+               style="flex:1;min-width:140px;padding:8px 10px;border-radius:8px;border:1.5px solid rgba(255,223,0,.4);background:rgba(0,0,0,.4);color:#fff;font-size:.9rem;">
+        <button onclick="cfgAddDate()"
+                style="padding:8px 16px;background:var(--green-dark);border:none;border-radius:8px;color:var(--yellow);font-weight:700;cursor:pointer;font-size:.9rem;">
+          ➕ Adicionar
+        </button>
+      </div>
+
+      <!-- horários -->
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+        <label style="color:rgba(255,255,255,.8);font-size:.88rem;">
+          🕐 Abre às:
+          <input id="cfg-start-hour" type="number" min="0" max="23"
+                 style="width:56px;margin-left:6px;padding:6px 8px;border-radius:7px;border:1.5px solid rgba(255,223,0,.4);background:rgba(0,0,0,.4);color:#fff;font-size:.9rem;text-align:center;">h
+        </label>
+        <label style="color:rgba(255,255,255,.8);font-size:.88rem;">
+          🕙 Fecha às:
+          <input id="cfg-end-hour" type="number" min="1" max="24"
+                 style="width:56px;margin-left:6px;padding:6px 8px;border-radius:7px;border:1.5px solid rgba(255,223,0,.4);background:rgba(0,0,0,.4);color:#fff;font-size:.9rem;text-align:center;">h
+        </label>
+      </div>
+
+      <!-- botão publicar -->
+      <button id="cfg-publish-btn" onclick="cfgPublish()"
+              style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(0,180,100,.3),rgba(0,120,60,.3));border:2px solid #0c6;border-radius:9px;color:#0f0;font-weight:800;font-size:1rem;cursor:pointer;letter-spacing:1px;margin-bottom:8px;">
+        🚀 PUBLICAR AGORA
+      </button>
+      <div id="cfg-msg" style="text-align:center;margin-top:4px;font-size:.85rem;color:#0c6;min-height:40px;line-height:1.5;"></div>
+    </div>
+  </details>
+
+  <div class="adm-note">
+    ℹ️ <strong>Como validar:</strong> quando o cliente mostrar o cupom, localize o código aqui e clique em
+    <em>"Marcar Usado"</em>. Os cupons marcados ficam salvos neste dispositivo.
+    Cada código é único e só pode ser apresentado uma vez pelo cliente (limitação por navegador).
+  </div>
+  <div class="stats-row" id="statsRow"></div>
+  <div class="day-tabs"  id="dayTabs"></div>
+  <div id="dayContent"></div>
+  <div class="adm-export">
+    <button class="export-btn" onclick="exportCSV()">📥 Exportar CSV do dia</button>
+  </div>
+</div>
+
+<div class="footer">
+  Roleta do Hexa © 2026 · Costaneiras Grill · Um cupom por cliente por dia
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// CONFIGURAÇÃO  ← edite aqui conforme necessário
+// ══════════════════════════════════════════════
+const CFG = {
+  START_DATE:     '2026-06-13',   // Dia da promoção
+  DAYS:           1,              // Apenas 1 dia
+  START_HOUR:     17,             // Abre às 17h (horário Sinop/MT)
+  END_HOUR:       23,             // Encerra às 23h (horário Sinop/MT)
+  TIMEZONE:       'America/Cuiaba', // Fuso de Sinop-MT (UTC-4)
+  MENU_URL:       'https://costaneirasgrill.com.br/centro/pedidos?utm_source=META&utm_campaign=delivery',
+  ADMIN_PASSWORD: 'HEXAADMIN',
+  ACTIVE_DATES:   ["10062026","13062026"],   // Datas ativas — gerenciado pelo painel admin
+};
+
+// ══════════════════════════════════════════════
+// SLOTS  — 13 níveis, total 50 cupons/dia
+// ══════════════════════════════════════════════
+// Distribuição:
+//   5 % → 9 |  10 % → 8 |  15 % → 7 |  20 % → 6 |  25 % → 5
+//  30 % → 4 |  35 % → 3 |  40 % → 2 |  45 % → 1
+//  50 % → 2 |  70 % → 1 |  80 % → 1 | 100 % → 1   Total = 50 ✓
+const SLOTS = [
+  { d:  5, n: 9, label:  '5%', bg:'#009C3B', fg:'#FFDF00' },
+  { d: 10, n: 8, label: '10%', bg:'#FFDF00', fg:'#004d1a' },
+  { d: 15, n: 7, label: '15%', bg:'#007A2F', fg:'#FFDF00' },
+  { d: 20, n: 6, label: '20%', bg:'#FFB800', fg:'#004d1a' },
+  { d: 25, n: 5, label: '25%', bg:'#00AA44', fg:'#FFDF00' },
+  { d: 30, n: 4, label: '30%', bg:'#FFDF00', fg:'#004d1a' },
+  { d: 35, n: 3, label: '35%', bg:'#006622', fg:'#FFDF00' },
+  { d: 40, n: 2, label: '40%', bg:'#FFC200', fg:'#004d1a' },
+  { d: 45, n: 1, label: '45%', bg:'#004d1a', fg:'#FFDF00' },
+  { d: 50, n: 2, label: '50%', bg:'#FFD700', fg:'#004d1a' },
+  { d: 70, n: 1, label: '70%', bg:'#FF8C00', fg:'#ffffff' },
+  { d: 80, n: 1, label: '80%', bg:'#E65C00', fg:'#ffffff' },
+  { d:100, n: 1, label:'100%', bg:'#CC0000', fg:'#FFD700' },
+];
+const TOTAL = SLOTS.reduce((s, sl) => s + sl.n, 0); // 50
+
+// ══════════════════════════════════════════════
+// COUPON GENERATION
+// ══════════════════════════════════════════════
+function seededRNG(seed) {
+  let s = seed;
+  return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 0x100000000; };
+}
+
+function seededShuffle(arr, seed) {
+  const rng = seededRNG(seed);
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+function dateToKey(d) {
+  return `${String(d.getDate()).padStart(2,'0')}${String(d.getMonth()+1).padStart(2,'0')}${d.getFullYear()}`;
+}
+
+const START = new Date(CFG.START_DATE + 'T00:00:00');
+
+// ALL_COUPONS: { 'DDMMYYYY': [ {code, discount, dateKey}, … ] }
+const ALL_COUPONS = (() => {
+  const out = {};
+  for (let day = 0; day < CFG.DAYS; day++) {
+    const date = new Date(START);
+    date.setDate(date.getDate() + day);
+    const key  = dateToKey(date);
+    const pool = [];
+    SLOTS.forEach(sl => {
+      for (let i = 1; i <= sl.n; i++) {
+        pool.push({
+          code:     `HEXA${sl.d}`,   // código simples cadastrado na plataforma
+          discount: sl.d,
+          dateKey:  key,
+        });
+      }
+    });
+    seededShuffle(pool, day * 31337 + 9001); // deterministic shuffle per day
+    out[key] = pool;
+  }
+  return out;
+})();
+
+// ── Garante cupons para todos os dias em CFG.ACTIVE_DATES ──
+(function ensureActiveDays() {
+  (CFG.ACTIVE_DATES || []).forEach((key, i) => {
+    if (!ALL_COUPONS[key]) {
+      const pool = [];
+      SLOTS.forEach(sl => {
+        for (let j = 1; j <= sl.n; j++) {
+          pool.push({ code: `HEXA${sl.d}`, discount: sl.d, dateKey: key });
+        }
+      });
+      seededShuffle(pool, i * 13337 + 77777);
+      ALL_COUPONS[key] = pool;
+    }
+  });
+})();
+
+// ══════════════════════════════════════════════
+// DEVICE FINGERPRINT  (nível 2 de proteção)
+// Funciona mesmo em modo anônimo/incógnito
+// ══════════════════════════════════════════════
+let DEVICE_FP = 'unknown';  // preenchido em initFingerprint()
+
+function buildFingerprint() {
+  // 1. Características estáticas do dispositivo
+  const parts = [
+    navigator.userAgent,
+    navigator.language,
+    navigator.languages ? navigator.languages.join(',') : '',
+    screen.width + 'x' + screen.height + 'x' + screen.colorDepth,
+    new Date().getTimezoneOffset(),
+    navigator.hardwareConcurrency || 0,
+    navigator.deviceMemory        || 0,
+    navigator.platform            || '',
+    window.devicePixelRatio       || 1,
+  ];
+
+  // 2. Canvas fingerprint  ← persiste mesmo em modo anônimo
+  try {
+    const fp = document.createElement('canvas');
+    fp.width = 240; fp.height = 60;
+    const c = fp.getContext('2d');
+    c.textBaseline = 'alphabetic';
+    c.fillStyle    = '#009C3B';
+    c.fillRect(0, 0, 240, 60);
+    c.fillStyle = '#FFDF00';
+    c.font      = 'bold 18px Arial';
+    c.fillText('RoletaHexa🏆2026', 10, 35);
+    c.fillStyle = 'rgba(255,100,0,0.6)';
+    c.font      = '13px sans-serif';
+    c.fillText(navigator.userAgent.slice(0, 40), 10, 52);
+    parts.push(fp.toDataURL());
+  } catch (e) { parts.push('no-canvas'); }
+
+  // 3. WebGL renderer  ← muito específico por GPU
+  try {
+    const gl  = document.createElement('canvas').getContext('webgl');
+    const ext = gl && gl.getExtension('WEBGL_debug_renderer_info');
+    if (ext) {
+      parts.push(gl.getParameter(ext.UNMASKED_VENDOR_WEBGL));
+      parts.push(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL));
+    }
+  } catch (e) { parts.push('no-webgl'); }
+
+  // 4. Hash djb2 de tudo
+  const str = parts.join('|||');
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) + h) ^ str.charCodeAt(i);
+    h = h >>> 0;
+  }
+  return h.toString(36);
+}
+
+async function initFingerprint() {
+  DEVICE_FP = buildFingerprint();
+
+  // Tenta enriquecer com AudioContext (diferencia dispositivos parecidos)
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (AudioCtx) {
+      const ac  = new AudioCtx();
+      const osc = ac.createOscillator();
+      const an  = ac.createAnalyser();
+      const gn  = ac.createGain();
+      gn.gain.value = 0;
+      osc.connect(an); an.connect(gn); gn.connect(ac.destination);
+      osc.start(0);
+      const buf = new Float32Array(an.frequencyBinCount);
+      an.getFloatFrequencyData(buf);
+      osc.stop(); ac.close();
+      let ah = 0;
+      buf.slice(0, 30).forEach(v => { ah = ((ah << 5) + ah) ^ (v * 1000 | 0); ah = ah >>> 0; });
+      DEVICE_FP += ah.toString(36);
+    }
+  } catch (e) { /* AudioContext bloqueado — sem problema */ }
+}
+
+// ══════════════════════════════════════════════
+// CONFIGURAÇÃO DINÂMICA (admin localStorage)
+// ══════════════════════════════════════════════
+function getActiveDates() {
+  return new Set(CFG.ACTIVE_DATES || []);
+}
+
+function getActiveHours() {
+  return { start: CFG.START_HOUR, end: CFG.END_HOUR };
+}
+
+// ── Admin UI helpers ─────────────────────────
+// datas de trabalho (pendentes de publicar)
+let _cfgPendingDates = null;
+
+function cfgGetWorkingDates() {
+  if (_cfgPendingDates === null) _cfgPendingDates = [...(CFG.ACTIVE_DATES || [])];
+  return _cfgPendingDates;
+}
+
+function cfgRenderDates() {
+  const dates = cfgGetWorkingDates();
+  const el = document.getElementById('cfg-current-dates');
+  if (!el) return;
+  if (!dates.length) {
+    el.innerHTML = '<span style="color:rgba(255,255,255,.4);font-size:.82rem">Nenhuma data</span>';
+    return;
+  }
+  el.innerHTML = dates.map(key => {
+    const label = key.replace(/(\d{2})(\d{2})(\d{4})/, '$1/$2/$3');
+    return `<span style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,223,0,.12);border:1px solid rgba(255,223,0,.4);border-radius:20px;padding:4px 12px;color:var(--yellow);font-size:.84rem;">
+      📅 ${label}
+      <button onclick="cfgRemoveDate('${key}')" style="background:none;border:none;color:rgba(255,100,100,.8);cursor:pointer;font-size:1rem;line-height:1;padding:0;">✕</button>
+    </span>`;
+  }).join('');
+}
+
+function cfgAddDate() {
+  const input = document.getElementById('cfg-new-date');
+  if (!input.value) return;
+  const [y, m, d] = input.value.split('-');
+  const key = d + m + y;
+  const dates = cfgGetWorkingDates();
+  if (!dates.includes(key)) dates.push(key);
+  input.value = '';
+  cfgRenderDates();
+}
+
+function cfgRemoveDate(key) {
+  _cfgPendingDates = cfgGetWorkingDates().filter(k => k !== key);
+  cfgRenderDates();
+}
+
+const GH_USER = 'tiagonius30-bot';
+const GH_REPO = 'roleta-do-hexa';
+const GH_FILE = 'deploy/index.html';
+const LS_GH_TOKEN = 'hexa_gh_token';
+
+function cfgGetToken() { return localStorage.getItem(LS_GH_TOKEN) || ''; }
+function cfgSaveGhToken(t) { localStorage.setItem(LS_GH_TOKEN, t.trim()); }
+
+async function cfgPublish() {
+  const msg = document.getElementById('cfg-msg');
+  const btn = document.getElementById('cfg-publish-btn');
+
+  const sh = parseInt(document.getElementById('cfg-start-hour').value);
+  const eh = parseInt(document.getElementById('cfg-end-hour').value);
+  if (isNaN(sh) || isNaN(eh) || sh < 0 || eh > 24 || sh >= eh) {
+    msg.style.color = '#f66'; msg.textContent = '⚠️ Horário inválido.'; return;
+  }
+
+  let token = cfgGetToken();
+  if (!token) {
+    token = prompt('Cole seu GitHub Personal Access Token (ghp_...):');
+    if (!token) return;
+    cfgSaveGhToken(token);
+  }
+
+  btn.textContent = '⏳ Publicando...';
+  btn.disabled = true;
+  msg.style.color = '#fff'; msg.textContent = 'Buscando arquivo no GitHub...';
+
+  try {
+    const dates = cfgGetWorkingDates();
+    const headers = {
+      'Authorization': `token ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    };
+
+    // 1. Pega SHA atual do arquivo
+    const getResp = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`, { headers });
+    if (!getResp.ok) {
+      if (getResp.status === 401) { localStorage.removeItem(LS_GH_TOKEN); throw new Error('Token inválido. Tente novamente.'); }
+      if (getResp.status === 404) throw new Error('Repositório ou arquivo não encontrado. Verifique o setup.');
+      throw new Error('Erro GitHub: ' + getResp.status);
+    }
+    const fileData = await getResp.json();
+    const currentSha = fileData.sha;
+
+    // 2. Decodifica, atualiza e re-codifica
+    msg.textContent = 'Atualizando configuração...';
+    let html = atob(fileData.content.replace(/\n/g, ''));
+    html = html.replace(/ACTIVE_DATES:\s*\[.*?\]/, `ACTIVE_DATES:   ${JSON.stringify(dates)}`);
+    html = html.replace(/(START_HOUR:\s*)\d+/, `$1${sh}`);
+    html = html.replace(/(END_HOUR:\s*)\d+/,   `$1${eh}`);
+
+    // 3. Faz o commit via API
+    msg.textContent = 'Enviando para o GitHub...';
+    const now = new Date().toLocaleString('pt-BR', {timeZone: CFG.TIMEZONE});
+    const putResp = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        message: `Admin: atualiza datas ativas (${now})`,
+        content: btoa(unescape(encodeURIComponent(html))),
+        sha: currentSha
+      })
+    });
+    if (!putResp.ok) throw new Error('Erro ao salvar: ' + putResp.status);
+
+    msg.style.color = '#0c6';
+    msg.innerHTML = '✅ Publicado no GitHub!<br><span style="font-size:.78rem;color:rgba(255,255,255,.6)">Netlify detecta e publica em ~30 segundos.</span>';
+    btn.textContent = '🚀 PUBLICAR AGORA';
+    btn.disabled = false;
+
+  } catch(e) {
+    msg.style.color = '#f66';
+    msg.textContent = '❌ ' + e.message;
+    btn.textContent = '🚀 PUBLICAR AGORA';
+    btn.disabled = false;
+  }
+}
+
+function cfgInitUI() {
+  _cfgPendingDates = null;
+  document.getElementById('cfg-start-hour').value = CFG.START_HOUR;
+  document.getElementById('cfg-end-hour').value   = CFG.END_HOUR;
+  cfgRenderDates();
+}
+
+// ── Storage helpers ─────────────────────────
+const LS_USED = 'hexa_admin_used';
+
+function todayKey() { return dateToKey(new Date()); }
+
+// Chave única por dispositivo + dia (funciona em incógnito)
+function fpDayKey() { return `hexa_fp_${DEVICE_FP}_${todayKey()}`; }
+
+function getSavedCoupon() {
+  // Verifica pelo fingerprint primeiro; fallback para chave antiga
+  try {
+    return JSON.parse(localStorage.getItem(fpDayKey()))
+        || JSON.parse(localStorage.getItem(`hexa_today_${todayKey()}`));
+  } catch { return null; }
+}
+
+function saveCoupon(c) {
+  localStorage.setItem(fpDayKey(), JSON.stringify(c));
+  const used = getAdminUsed();
+  if (!used[c.code]) used[c.code] = { ts: Date.now(), via: 'customer' };
+  localStorage.setItem(LS_USED, JSON.stringify(used));
+}
+
+function getAdminUsed() {
+  try { return JSON.parse(localStorage.getItem(LS_USED) || '{}'); } catch { return {}; }
+}
+
+function toggleAdminUsed(code) {
+  const used = getAdminUsed();
+  if (used[code]) { delete used[code]; }
+  else            { used[code] = { ts: Date.now(), via: 'admin' }; }
+  localStorage.setItem(LS_USED, JSON.stringify(used));
+}
+
+// ══════════════════════════════════════════════
+// CANVAS WHEEL
+// ══════════════════════════════════════════════
+const canvas = document.getElementById('wheelCanvas');
+const ctx    = canvas.getContext('2d');
+
+(function sizeCanvas() {
+  const sz = Math.min(390, window.innerWidth - 40);
+  canvas.width  = sz;
+  canvas.height = sz;
+})();
+
+let curAngle  = -Math.PI / 2;  // start with slot-0 at top
+let spinning  = false;
+
+function drawWheel(rot) {
+  const cx = canvas.width  / 2;
+  const cy = canvas.height / 2;
+  const R  = cx - 6;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  let a = rot;
+  SLOTS.forEach(sl => {
+    const arc = (sl.n / TOTAL) * Math.PI * 2;
+
+    // fill
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, R, a, a + arc);
+    ctx.closePath();
+    ctx.fillStyle = sl.bg;
+    ctx.fill();
+
+    // divider
+    ctx.strokeStyle = 'rgba(0,0,0,.22)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // label
+    const mid    = a + arc / 2;
+    const arcPx  = arc * R;
+    const fSize  = arcPx > 65 ? 15 : arcPx > 38 ? 12 : 9;
+    const tRadius = R * 0.70;
+
+    ctx.save();
+    ctx.translate(cx + Math.cos(mid) * tRadius, cy + Math.sin(mid) * tRadius);
+    ctx.rotate(mid + Math.PI / 2);
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font         = `bold ${fSize}px Arial`;
+    ctx.shadowColor  = 'rgba(0,0,0,.5)';
+    ctx.shadowBlur   = 2;
+    ctx.fillStyle    = sl.fg;
+    ctx.fillText(sl.label, 0, 0);
+    ctx.restore();
+
+    a += arc;
+  });
+
+  // outer ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.strokeStyle = '#FFDF00';
+  ctx.lineWidth   = 3;
+  ctx.stroke();
+
+  // center cap
+  const grad = ctx.createRadialGradient(cx, cy, 4, cx, cy, 30);
+  grad.addColorStop(0, '#FFE040');
+  grad.addColorStop(1, '#FF9900');
+  ctx.beginPath();
+  ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+  ctx.fillStyle   = grad;
+  ctx.fill();
+  ctx.strokeStyle = '#003d15';
+  ctx.lineWidth   = 2.5;
+  ctx.stroke();
+
+  ctx.shadowBlur   = 0;
+  ctx.fillStyle    = '#003d15';
+  ctx.font         = 'bold 8.5px Arial';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('HEXA',  cx, cy - 5);
+  ctx.font = '13px serif';
+  ctx.fillText('🏆',    cx, cy + 7);
+}
+
+drawWheel(curAngle);
+
+// ══════════════════════════════════════════════
+// DETERMINISTIC WINNER SELECTION
+// Fingerprint + data → mesmo resultado sempre
+// Mesmo em modo anônimo, mesmo cupom é sorteado
+// ══════════════════════════════════════════════
+function deterministicIndex(pool) {
+  // Seed = hash do fingerprint + data de hoje
+  const seedStr = DEVICE_FP + '_' + todayKey();
+  let h = 2166136261; // FNV-1a 32-bit
+  for (let i = 0; i < seedStr.length; i++) {
+    h ^= seedStr.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h % pool.length;
+}
+
+// ══════════════════════════════════════════════
+// SPIN
+// ══════════════════════════════════════════════
+function spinWheel() {
+  if (spinning) return;
+
+  // Se já girou hoje (neste navegador), mostra resultado sem rolar de novo
+  const saved = getSavedCoupon();
+  if (saved) { showAlreadySpun(saved); return; }
+
+  const pool = ALL_COUPONS[todayKey()];
+  if (!pool) { alert('Promoção não ativa hoje. Volte amanhã!'); return; }
+
+  const adminUsed = getAdminUsed();
+  const available = pool.filter(c => !adminUsed[c.code]);
+  if (available.length === 0) { alert('Todos os cupons do dia foram utilizados! Volte amanhã.'); return; }
+
+  // ── Cupom determinístico: mesmo dispositivo = mesmo cupom no dia ──
+  // Garante que girar em modo anônimo dá o mesmo resultado
+  const idx    = deterministicIndex(available);
+  const winner = available[idx];
+
+  // find slot index
+  const si = SLOTS.findIndex(s => s.d === winner.discount);
+
+  // calculate where that slot sits (angles when rot=0)
+  let slotStart = 0;
+  for (let i = 0; i < si; i++) slotStart += (SLOTS[i].n / TOTAL) * Math.PI * 2;
+  const slotArc = (SLOTS[si].n / TOTAL) * Math.PI * 2;
+
+  // random landing point within slot (avoid extremes)
+  const landAngle = slotStart + slotArc * (.2 + Math.random() * .6);
+
+  // pointer is at top = -π/2 in canvas coords
+  // we want: landAngle + finalRot = -π/2  (mod 2π)
+  // → finalRot = -π/2 - landAngle  (+ 2πN)
+  const MIN_SPINS = 6;
+  const target    = -Math.PI / 2 - landAngle;
+  const extra     = Math.ceil((curAngle - target) / (Math.PI * 2)) + MIN_SPINS;
+  const finalRot  = target + extra * Math.PI * 2;
+
+  spinning = true;
+  document.getElementById('spinBtn').disabled = true;
+
+  const t0   = performance.now();
+  const dur  = 4200 + Math.random() * 1400;
+  const from = curAngle;
+  const diff = finalRot - from;
+
+  function tick(now) {
+    const p     = Math.min((now - t0) / dur, 1);
+    const eased = 1 - Math.pow(1 - p, 4); // ease-out quart
+    curAngle    = from + diff * eased;
+    drawWheel(curAngle);
+
+    if (p < 1) { requestAnimationFrame(tick); return; }
+
+    curAngle = finalRot;
+    spinning = false;
+    saveCoupon(winner);
+    setTimeout(() => showResult(winner), 320);
+  }
+  requestAnimationFrame(tick);
+}
+
+// ══════════════════════════════════════════════
+// RESULT / MODAL
+// ══════════════════════════════════════════════
+function emojiFor(d) {
+  if (d >= 100) return '🏆🎊';
+  if (d >= 80)  return '🥇⭐';
+  if (d >= 70)  return '🥈🎯';
+  if (d >= 50)  return '🎉';
+  if (d >= 30)  return '😄';
+  return '🎈';
+}
+
+function showResult(c) {
+  document.getElementById('rEmoji').textContent = emojiFor(c.discount);
+  document.getElementById('rValue').textContent = c.discount + '%';
+  document.getElementById('rCode').textContent  = c.code;
+  document.getElementById('rValid').textContent =
+    `Válido hoje 13/06/2026 · das 17h às 23h (Sinop/MT)`;
+  document.getElementById('resultModal').classList.add('show');
+  if (c.discount >= 50) launchConfetti(c.discount >= 80 ? 80 : 45);
+}
+
+function showAlreadySpun(c) {
+  document.getElementById('savedCodeDisplay').textContent = c.code;
+  document.getElementById('alreadyBox').style.display = 'block';
+  document.getElementById('spinBtn').style.display    = 'none';
+}
+
+function copyCoupon() {
+  const code = document.getElementById('rCode').textContent.trim();
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✅ COPIADO!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '📋 COPIAR CUPOM';
+      btn.classList.remove('copied');
+    }, 2500);
+  }).catch(() => {
+    // fallback para navegadores sem clipboard API
+    const ta = document.createElement('textarea');
+    ta.value = code;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✅ COPIADO!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 COPIAR CUPOM'; btn.classList.remove('copied'); }, 2500);
+  });
+}
+
+function claimAndGo() {
+  document.getElementById('resultModal').classList.remove('show');
+  const c = getSavedCoupon();
+  if (c) showAlreadySpun(c);
+  window.open(CFG.MENU_URL, '_blank');
+}
+
+function goToMenu() {
+  window.open(CFG.MENU_URL, '_blank');
+}
+
+// ══════════════════════════════════════════════
+// CONFETTI
+// ══════════════════════════════════════════════
+function launchConfetti(n) {
+  const colors = ['#FFDF00','#009C3B','#FFB800','#ffffff','#FF6B00','#00CC55'];
+  for (let i = 0; i < n; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'confetti-piece';
+      el.style.left            = Math.random() * 100 + 'vw';
+      el.style.backgroundColor = colors[i % colors.length];
+      const sz = 6 + Math.random() * 8;
+      el.style.width           = sz + 'px';
+      el.style.height          = sz + 'px';
+      el.style.borderRadius    = Math.random() > .5 ? '50%' : '2px';
+      el.style.animationDuration = (1.8 + Math.random() * 2) + 's';
+      el.style.animationDelay    = (Math.random() * .6) + 's';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
+    }, i * 25);
+  }
+}
+
+// ══════════════════════════════════════════════
+// ADMIN PANEL
+// ══════════════════════════════════════════════
+let adminCurrentDay = 0;
+
+function initAdmin() {
+  document.getElementById('customer-view').style.display = 'none';
+  document.getElementById('admin-panel').style.display   = 'block';
+  document.querySelector('.footer').style.display        = 'none';
+  cfgInitUI();
+  renderAdminStats();
+  buildAdminTabs();
+
+  // Default to today's tab
+  for (let d = 0; d < CFG.DAYS; d++) {
+    const date = new Date(START); date.setDate(date.getDate() + d);
+    if (dateToKey(date) === todayKey()) { adminCurrentDay = d; break; }
+  }
+  renderAdminDay(adminCurrentDay);
+}
+
+function renderAdminStats() {
+  const used   = getAdminUsed();
+  const tk     = todayKey();
+  const todayP = ALL_COUPONS[tk] || [];
+  const usedT  = todayP.filter(c => used[c.code]).length;
+  const totalA = Object.values(ALL_COUPONS).flat().length;
+  const usedA  = Object.values(ALL_COUPONS).flat().filter(c => used[c.code]).length;
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-box"><div class="sn">${CFG.DAYS}</div><div class="sl">Dias</div></div>
+    <div class="stat-box"><div class="sn">${todayP.length}</div><div class="sl">Cupons Hoje</div></div>
+    <div class="stat-box"><div class="sn" style="color:#ff8888">${usedT}</div><div class="sl">Usados Hoje</div></div>
+    <div class="stat-box"><div class="sn">${totalA - usedA}</div><div class="sl">Disponíveis Total</div></div>
+  `;
+}
+
+function buildAdminTabs() {
+  const el  = document.getElementById('dayTabs');
+  const tk  = todayKey();
+  let html  = '';
+  for (let d = 0; d < CFG.DAYS; d++) {
+    const date = new Date(START); date.setDate(date.getDate() + d);
+    const key  = dateToKey(date);
+    const lbl  = `Dia ${d+1}${key === tk ? ' (Hoje)' : ''}`;
+    html += `<button class="day-tab${d === adminCurrentDay ? ' active' : ''}"
+               onclick="selectAdminDay(${d}, this)">${lbl}</button>`;
+  }
+  el.innerHTML = html;
+}
+
+window.selectAdminDay = function(d, btn) {
+  document.querySelectorAll('.day-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  adminCurrentDay = d;
+  renderAdminDay(d);
+};
+
+function renderAdminDay(dayIdx) {
+  const date = new Date(START); date.setDate(date.getDate() + dayIdx);
+  const key  = dateToKey(date);
+  const pool = ALL_COUPONS[key] || [];
+  const used = getAdminUsed();
+  const tk   = todayKey();
+  const isToday = key === tk;
+
+  const usedCount = pool.filter(c => used[c.code]).length;
+
+  let html = `<div class="day-card">
+    <div class="day-card-header">
+      <h3>📅 ${date.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
+        ${isToday ? '<span class="today-badge">HOJE</span>' : ''}
+      </h3>
+      <span class="day-usage">${usedCount}/${pool.length} usados</span>
+    </div>`;
+
+  SLOTS.forEach(sl => {
+    const group = pool.filter(c => c.discount === sl.d);
+    if (!group.length) return;
+    html += `<div class="slot-group">
+      <div class="slot-title">${sl.label} de desconto — ${group.length} cupom${group.length>1?'s':''}</div>
+      <div class="code-grid">`;
+    group.forEach(c => {
+      const isUsed  = !!used[c.code];
+      const usedInfo = isUsed
+        ? `(${used[c.code].via === 'admin' ? 'Admin' : 'Cliente'} ${new Date(used[c.code].ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})})`
+        : '';
+      html += `<div class="code-item ${isUsed ? 'used' : ''}" id="ci-${c.code}">
+        <span class="ci-code" title="${usedInfo}">${c.code}</span>
+        <button class="mark-btn" onclick="adminToggle('${c.code}')">${isUsed ? '↩ Reverter' : 'Marcar Usado'}</button>
+      </div>`;
+    });
+    html += '</div></div>';
+  });
+
+  html += '</div>';
+  document.getElementById('dayContent').innerHTML = html;
+}
+
+window.adminToggle = function(code) {
+  toggleAdminUsed(code);
+  renderAdminStats();
+  renderAdminDay(adminCurrentDay);
+};
+
+// ── CSV export ────────────────────────────────
+window.exportCSV = function() {
+  const date = new Date(START); date.setDate(date.getDate() + adminCurrentDay);
+  const key  = dateToKey(date);
+  const pool = ALL_COUPONS[key] || [];
+  const used = getAdminUsed();
+
+  let csv = 'Codigo,Desconto,Status\n';
+  pool.forEach(c => {
+    const status = used[c.code]
+      ? `Usado (${used[c.code].via})`
+      : 'Disponivel';
+    csv += `${c.code},${c.discount}%,${status}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `cupons_dia${adminCurrentDay+1}_${key}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+window.addEventListener('load', async () => {
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.get('admin') === CFG.ADMIN_PASSWORD) {
+    initAdmin();
+    return;
+  }
+
+  const btn = document.getElementById('spinBtn');
+
+  // ── Horário de Sinop/MT (America/Cuiaba, UTC-4) ──
+  function getSinopTime() {
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: CFG.TIMEZONE,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false
+    });
+    const p = fmt.formatToParts(new Date());
+    const g = t => parseInt(p.find(x => x.type === t).value);
+    return { year: g('year'), month: g('month'), day: g('day'), hour: g('hour') };
+  }
+
+  const st          = getSinopTime();
+  const todayStr    = String(st.day).padStart(2,'0') + String(st.month).padStart(2,'0') + st.year;
+  const activeDates = getActiveDates();
+  const { start: hourStart, end: hourEnd } = getActiveHours();
+  const isPromoDay  = activeDates.has(todayStr);
+  const inWindow    = st.hour >= hourStart && st.hour < hourEnd;
+  const tooEarly    = isPromoDay && st.hour < hourStart;
+
+  if (!isPromoDay || !inWindow) {
+    let msg = '';
+    if (!isPromoDay) {
+      msg = 'Fique ligado nas nossas promoções!';
+    } else if (tooEarly) {
+      msg = `A roleta abre às ${hourStart}h (horário de Sinop). Volte mais tarde!`;
+    } else {
+      msg = `A roleta encerrou às ${hourEnd}h. Até a próxima!`;
+    }
+
+    const title = tooEarly ? '⏳ Ainda não abriu!' : '⏰ Encerrado!';
+
+    document.querySelector('.wheel-section').innerHTML = `
+      <div style="text-align:center;padding:40px 20px;max-width:420px;margin:0 auto;">
+        <div style="font-size:3.5rem;margin-bottom:12px">${tooEarly ? '⏳' : '⏰'}</div>
+        <h2 style="color:#FFDF00;margin:0 0 12px;font-size:1.9rem;font-weight:900;letter-spacing:2px">${title}</h2>
+
+        <p style="color:rgba(255,255,255,.88);font-size:1.05rem;line-height:1.6;max-width:320px;margin:0 auto">${msg}</p>
+      </div>
+    `;
+    return;
+  }
+
+  // ── Init fingerprint (async, melhora unicidade) ──
+  await initFingerprint();
+
+  // ── Wheel already drawn at script parse time; redraw after fp ready ──
+  drawWheel(curAngle);
+});
+</script>
+</body>
+</html>
