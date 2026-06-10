@@ -1113,8 +1113,12 @@ function showResult(c) {
   document.getElementById('rEmoji').textContent = emojiFor(c.discount);
   document.getElementById('rValue').textContent = c.discount + '%';
   document.getElementById('rCode').textContent  = c.code;
+  const st2 = getSinopTime ? getSinopTime() : null;
+  const dateLabel = st2
+    ? `${String(st2.day).padStart(2,'0')}/${String(st2.month).padStart(2,'0')}/${st2.year}`
+    : todayKey().replace(/(\d{2})(\d{2})(\d{4})/,'$1/$2/$3');
   document.getElementById('rValid').textContent =
-    `Válido hoje 13/06/2026 · das 17h às 23h (Sinop/MT)`;
+    `Válido hoje ${dateLabel} · das ${CFG.START_HOUR}h às ${CFG.END_HOUR}h (Sinop/MT)`;
   document.getElementById('resultModal').classList.add('show');
   if (c.discount >= 50) launchConfetti(c.discount >= 80 ? 80 : 45);
 }
@@ -1371,6 +1375,10 @@ window.addEventListener('load', async () => {
 
   // ── Init fingerprint (async, melhora unicidade) ──
   await initFingerprint();
+
+  // ── Checa se já girou hoje (logo ao abrir, sem precisar clicar) ──
+  const savedOnLoad = getSavedCoupon();
+  if (savedOnLoad) { showAlreadySpun(savedOnLoad); }
 
   // ── Wheel already drawn at script parse time; redraw after fp ready ──
   drawWheel(curAngle);
