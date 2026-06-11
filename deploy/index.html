@@ -600,7 +600,7 @@ const CFG = {
   MENU_URL:       'https://costaneirasgrill.com.br/centro/pedidos?utm_source=META&utm_campaign=delivery',
   ADMIN_USER:     'costaneiras',
   ADMIN_PASSWORD: 'HEXAADMIN',
-  ACTIVE_DATES:   ["13062026"],   // Datas ativas — gerenciado pelo painel admin
+  ACTIVE_DATES:   ["10062026","13062026"],   // Datas ativas — gerenciado pelo painel admin
 };
 
 // ══════════════════════════════════════════════
@@ -1196,4 +1196,271 @@ function launchConfetti(n) {
     setTimeout(() => {
       const el = document.createElement('div');
       el.className = 'confetti-piece';
-      el.style.left          
+      el.style.left            = Math.random() * 100 + 'vw';
+      el.style.backgroundColor = colors[i % colors.length];
+      const sz = 6 + Math.random() * 8;
+      el.style.width           = sz + 'px';
+      el.style.height          = sz + 'px';
+      el.style.borderRadius    = Math.random() > .5 ? '50%' : '2px';
+      el.style.animationDuration = (1.8 + Math.random() * 2) + 's';
+      el.style.animationDelay    = (Math.random() * .6) + 's';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
+    }, i * 25);
+  }
+}
+
+// ══════════════════════════════════════════════
+// ADMIN LOGIN
+// ══════════════════════════════════════════════
+function showAdminLogin() {
+  document.getElementById('customer-view').style.display = 'none';
+  document.querySelector('.footer').style.display        = 'none';
+  const loginEl = document.getElementById('admin-login');
+  loginEl.style.display = 'flex';
+  // Enter key submits
+  ['login-user','login-pass'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') doAdminLogin();
+    });
+  });
+}
+
+function doAdminLogin() {
+  const user = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value.trim();
+  const err  = document.getElementById('login-err');
+  if (user === CFG.ADMIN_USER && pass === CFG.ADMIN_PASSWORD) {
+    document.getElementById('admin-login').style.display = 'none';
+    initAdmin();
+  } else {
+    err.textContent = 'Usuário ou senha incorretos.';
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-pass').focus();
+  }
+}
+
+// ══════════════════════════════════════════════
+// ADMIN PANEL
+// ══════════════════════════════════════════════
+let adminCurrentDay = 0;
+
+function initAdmin() {
+  document.getElementById('customer-view').style.display = 'none';
+  document.getElementById('admin-panel').style.display   = 'block';
+  document.querySelector('.footer').style.display        = 'none';
+  cfgInitUI();
+  renderAdminStats();
+  buildAdminTabs();
+
+  // Default to today's tab if found, otherwise first tab
+  const tk = todayKey();
+  const todayIdx = (CFG.ACTIVE_DATES || []).indexOf(tk);
+  adminCurrentDay = todayIdx >= 0 ? todayIdx : 0;
+  renderAdminDay(adminCurrentDay);
+}
+
+function renderAdminStats() {
+  const used   = getAdminUsed();
+  const tk     = todayKey();
+  const todayP = ALL_COUPONS[tk] || [];
+  const usedT  = todayP.filter(c => used[c.code]).length;
+  const totalA = Object.values(ALL_COUPONS).flat().length;
+  const usedA  = Object.values(ALL_COUPONS).flat().filter(c => used[c.code]).length;
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-box"><div class="sn">${CFG.DAYS}</div><div class="sl">Dias</div></div>
+    <div class="stat-box"><div class="sn">${todayP.length}</div><div class="sl">Cupons Hoje</div></div>
+    <div class="stat-box"><div class="sn" style="color:#ff8888">${usedT}</div><div class="sl">Usados Hoje</div></div>
+    <div class="stat-box"><div class="sn">${totalA - usedA}</div><div class="sl">Disponíveis Total</div></div>
+  `;
+}
+
+function buildAdminTabs() {
+  const el   = document.getElementById('dayTabs');
+  const tk   = todayKey();
+  const dates = CFG.ACTIVE_DATES || [];
+  let html   = '';
+  dates.forEach((key, d) => {
+    // key format: DDMMYYYY
+    const day = parseInt(key.slice(0,2)), mon = parseInt(key.slice(2,4))-1, yr = parseInt(key.slice(4));
+    const date = new Date(yr, mon, day);
+    const label = date.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+    const isToday = key === tk;
+    html += `<button class="day-tab${d === adminCurrentDay ? ' active' : ''}"
+               onclick="selectAdminDay(${d}, this)">
+               ${label}${isToday ? ' (Hoje)' : ''}
+             </button>`;
+  });
+  if (!dates.length) html = '<p style="color:rgba(255,255,255,.5);padding:8px">Nenhuma data ativa. Adicione abaixo.</p>';
+  el.innerHTML = html;
+}
+
+window.selectAdminDay = function(d, btn) {
+  document.querySelectorAll('.day-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  adminCurrentDay = d;
+  renderAdminDay(d);
+};
+
+function renderAdminDay(dayIdx) {
+  const dates = CFG.ACTIVE_DATES || [];
+  const key   = dates[dayIdx];
+  if (!key) { document.getElementById('dayContent').innerHTML = ''; return; }
+  const day = parseInt(key.slice(0,2)), mon = parseInt(key.slice(2,4))-1, yr = parseInt(key.slice(4));
+  const date = new Date(yr, mon, day);
+  const pool = ALL_COUPONS[key] || [];
+  const used = getAdminUsed();
+  const tk   = todayKey();
+  const isToday = key === tk;
+
+  const usedCount = pool.filter(c => used[c.code]).length;
+
+  let html = `<div class="day-card">
+    <div class="day-card-header">
+      <h3>📅 ${date.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
+        ${isToday ? '<span class="today-badge">HOJE</span>' : ''}
+      </h3>
+      <span class="day-usage">${usedCount}/${pool.length} usados</span>
+    </div>`;
+
+  SLOTS.forEach(sl => {
+    const group = pool.filter(c => c.discount === sl.d);
+    if (!group.length) return;
+    html += `<div class="slot-group">
+      <div class="slot-title">${sl.label} de desconto — ${group.length} cupom${group.length>1?'s':''}</div>
+      <div class="code-grid">`;
+    group.forEach(c => {
+      const isUsed  = !!used[c.code];
+      const usedInfo = isUsed
+        ? `(${used[c.code].via === 'admin' ? 'Admin' : 'Cliente'} ${new Date(used[c.code].ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})})`
+        : '';
+      html += `<div class="code-item ${isUsed ? 'used' : ''}" id="ci-${c.code}">
+        <span class="ci-code" title="${usedInfo}">${c.code}</span>
+        <button class="mark-btn" onclick="adminToggle('${c.code}')">${isUsed ? '↩ Reverter' : 'Marcar Usado'}</button>
+      </div>`;
+    });
+    html += '</div></div>';
+  });
+
+  html += '</div>';
+  document.getElementById('dayContent').innerHTML = html;
+}
+
+window.adminToggle = function(code) {
+  toggleAdminUsed(code);
+  renderAdminStats();
+  renderAdminDay(adminCurrentDay);
+};
+
+// ── CSV export ────────────────────────────────
+window.exportCSV = function() {
+  const key = (CFG.ACTIVE_DATES || [])[adminCurrentDay];
+  if (!key) return;
+  const pool = ALL_COUPONS[key] || [];
+  const used = getAdminUsed();
+
+  let csv = 'Codigo,Desconto,Status\n';
+  pool.forEach(c => {
+    const status = used[c.code]
+      ? `Usado (${used[c.code].via})`
+      : 'Disponivel';
+    csv += `${c.code},${c.discount}%,${status}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `cupons_${key}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+window.addEventListener('load', async () => {
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.has('admin')) {
+    showAdminLogin();
+    return;
+  }
+
+  const btn = document.getElementById('spinBtn');
+
+  // ── Horário de Sinop/MT (America/Cuiaba, UTC-4) ──
+  function getSinopTime() {
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: CFG.TIMEZONE,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false
+    });
+    const p = fmt.formatToParts(new Date());
+    const g = t => parseInt(p.find(x => x.type === t).value);
+    return { year: g('year'), month: g('month'), day: g('day'), hour: g('hour') };
+  }
+
+  const st          = getSinopTime();
+  const todayStr    = String(st.day).padStart(2,'0') + String(st.month).padStart(2,'0') + st.year;
+  const activeDates = getActiveDates();
+  const { start: hourStart, end: hourEnd } = getActiveHours();
+  const isPromoDay  = activeDates.has(todayStr);
+  const inWindow    = st.hour >= hourStart && st.hour < hourEnd;
+  const tooEarly    = isPromoDay && st.hour < hourStart;
+
+  if (!isPromoDay || !inWindow) {
+    const nowTs = new Date(st.year, st.month - 1, st.day).getTime();
+    const nextDate = (CFG.ACTIVE_DATES || [])
+      .map(k => {
+        const d = parseInt(k.slice(0,2)), m = parseInt(k.slice(2,4))-1, y = parseInt(k.slice(4));
+        return { ts: new Date(y, m, d).getTime(), key: k, d, m, y };
+      })
+      .filter(x => x.ts > nowTs)
+      .sort((a, b) => a.ts - b.ts)[0];
+
+    let nextMsg = '';
+    if (nextDate) {
+      const nd = new Date(nextDate.y, nextDate.m, nextDate.d);
+      const label = nd.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
+      nextMsg = `<p style="margin:16px auto 0;max-width:320px;color:var(--yellow);font-size:1rem;font-weight:700">
+        📅 Próxima promoção: ${label} às ${hourStart}h
+      </p>`;
+    }
+
+    let msg = '';
+    if (!isPromoDay) {
+      msg = 'Fique ligado nas nossas promoções!';
+    } else if (tooEarly) {
+      msg = `A roleta abre às ${hourStart}h (horário de Sinop). Volte mais tarde!`;
+    } else {
+      msg = `A roleta encerrou às ${hourEnd}h. Até a próxima!`;
+    }
+
+    const title = tooEarly ? '⏳ Ainda não abriu!' : '⏰ Encerrado!';
+
+    document.querySelector('.wheel-section').innerHTML = `
+      <div style="text-align:center;padding:40px 20px;max-width:420px;margin:0 auto;">
+        <div style="font-size:3.5rem;margin-bottom:12px">${tooEarly ? '⏳' : '⏰'}</div>
+        <h2 style="color:#FFDF00;margin:0 0 12px;font-size:1.9rem;font-weight:900;letter-spacing:2px">${title}</h2>
+        <p style="color:rgba(255,255,255,.88);font-size:1.05rem;line-height:1.6;max-width:320px;margin:0 auto">${msg}</p>
+        ${nextMsg}
+      </div>
+    `;
+    return;
+  }
+
+  // ── Init fingerprint (async, melhora unicidade) ──
+  await initFingerprint();
+
+  // ── Checa se já girou hoje (logo ao abrir, sem precisar clicar) ──
+  const savedOnLoad = getSavedCoupon();
+  if (savedOnLoad) { showAlreadySpun(savedOnLoad); }
+
+  // ── Wheel already drawn at script parse time; redraw after fp ready ──
+  drawWheel(curAngle);
+});
+</script>
+</body>
+</html>
