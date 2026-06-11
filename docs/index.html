@@ -1231,8 +1231,8 @@ function buildAdminTabs() {
   let html   = '';
   dates.forEach((key, d) => {
     // key format: DDMMYYYY
-    const day = key.slice(0,2), mon = key.slice(2,4), yr = key.slice(4);
-    const date = new Date(`${yr}-${mon}-${day}`);
+    const day = parseInt(key.slice(0,2)), mon = parseInt(key.slice(2,4))-1, yr = parseInt(key.slice(4));
+    const date = new Date(yr, mon, day);
     const label = date.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
     const isToday = key === tk;
     html += `<button class="day-tab${d === adminCurrentDay ? ' active' : ''}"
@@ -1255,8 +1255,8 @@ function renderAdminDay(dayIdx) {
   const dates = CFG.ACTIVE_DATES || [];
   const key   = dates[dayIdx];
   if (!key) { document.getElementById('dayContent').innerHTML = ''; return; }
-  const day = key.slice(0,2), mon = key.slice(2,4), yr = key.slice(4);
-  const date = new Date(`${yr}-${mon}-${day}`);
+  const day = parseInt(key.slice(0,2)), mon = parseInt(key.slice(2,4))-1, yr = parseInt(key.slice(4));
+  const date = new Date(yr, mon, day);
   const pool = ALL_COUPONS[key] || [];
   const used = getAdminUsed();
   const tk   = todayKey();
