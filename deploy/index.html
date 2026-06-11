@@ -502,6 +502,24 @@
 <!-- ════════════════════════════════════
      ADMIN PANEL
 ════════════════════════════════════ -->
+<!-- LOGIN ADMIN -->
+<div id="admin-login" style="display:none;min-height:100vh;display:none;align-items:center;justify-content:center;flex-direction:column;padding:40px 20px;">
+  <div style="background:rgba(0,0,0,.75);border:1.5px solid rgba(255,223,0,.4);border-radius:16px;padding:36px 32px;width:100%;max-width:360px;text-align:center;">
+    <div style="font-size:2.5rem;margin-bottom:8px">🔐</div>
+    <h2 style="color:var(--yellow);margin:0 0 4px;font-size:1.5rem">Painel Admin</h2>
+    <p style="color:rgba(255,255,255,.6);font-size:.85rem;margin:0 0 24px">Costaneiras Grill</p>
+    <input id="login-user" type="text" placeholder="Usuário" autocomplete="username"
+      style="width:100%;box-sizing:border-box;padding:11px 14px;border-radius:8px;border:1.5px solid rgba(255,223,0,.3);background:rgba(255,255,255,.08);color:#fff;font-size:1rem;margin-bottom:12px;outline:none;">
+    <input id="login-pass" type="password" placeholder="Senha" autocomplete="current-password"
+      style="width:100%;box-sizing:border-box;padding:11px 14px;border-radius:8px;border:1.5px solid rgba(255,223,0,.3);background:rgba(255,255,255,.08);color:#fff;font-size:1rem;margin-bottom:8px;outline:none;">
+    <p id="login-err" style="color:#ff8888;font-size:.85rem;min-height:20px;margin:0 0 12px"></p>
+    <button onclick="doAdminLogin()"
+      style="width:100%;padding:12px;background:var(--yellow);color:#1a1a1a;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;letter-spacing:1px">
+      ENTRAR
+    </button>
+  </div>
+</div>
+
 <div id="admin-panel">
   <h2>⚙️ Painel Admin — Roleta do Hexa</h2>
   <p class="adm-sub">Costaneiras Grill · Promoção 7 dias · 50 cupons/dia</p>
@@ -580,6 +598,7 @@ const CFG = {
   END_HOUR:       23,             // Encerra às 23h (horário Sinop/MT)
   TIMEZONE:       'America/Cuiaba', // Fuso de Sinop-MT (UTC-4)
   MENU_URL:       'https://costaneirasgrill.com.br/centro/pedidos?utm_source=META&utm_campaign=delivery',
+  ADMIN_USER:     'costaneiras',
   ADMIN_PASSWORD: 'HEXAADMIN',
   ACTIVE_DATES:   ["10062026","13062026"],   // Datas ativas — gerenciado pelo painel admin
 };
@@ -1189,6 +1208,36 @@ function launchConfetti(n) {
 }
 
 // ══════════════════════════════════════════════
+// ADMIN LOGIN
+// ══════════════════════════════════════════════
+function showAdminLogin() {
+  document.getElementById('customer-view').style.display = 'none';
+  document.querySelector('.footer').style.display        = 'none';
+  const loginEl = document.getElementById('admin-login');
+  loginEl.style.display = 'flex';
+  // Enter key submits
+  ['login-user','login-pass'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') doAdminLogin();
+    });
+  });
+}
+
+function doAdminLogin() {
+  const user = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value.trim();
+  const err  = document.getElementById('login-err');
+  if (user === CFG.ADMIN_USER && pass === CFG.ADMIN_PASSWORD) {
+    document.getElementById('admin-login').style.display = 'none';
+    initAdmin();
+  } else {
+    err.textContent = 'Usuário ou senha incorretos.';
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-pass').focus();
+  }
+}
+
+// ══════════════════════════════════════════════
 // ADMIN PANEL
 // ══════════════════════════════════════════════
 let adminCurrentDay = 0;
@@ -1288,86 +1337,4 @@ function renderAdminDay(dayIdx) {
         <button class="mark-btn" onclick="adminToggle('${c.code}')">${isUsed ? '↩ Reverter' : 'Marcar Usado'}</button>
       </div>`;
     });
-    html += '</div></div>';
-  });
-
-  html += '</div>';
-  document.getElementById('dayContent').innerHTML = html;
-}
-
-window.adminToggle = function(code) {
-  toggleAdminUsed(code);
-  renderAdminStats();
-  renderAdminDay(adminCurrentDay);
-};
-
-// ── CSV export ────────────────────────────────
-window.exportCSV = function() {
-  const key = (CFG.ACTIVE_DATES || [])[adminCurrentDay];
-  if (!key) return;
-  const pool = ALL_COUPONS[key] || [];
-  const used = getAdminUsed();
-
-  let csv = 'Codigo,Desconto,Status\n';
-  pool.forEach(c => {
-    const status = used[c.code]
-      ? `Usado (${used[c.code].via})`
-      : 'Disponivel';
-    csv += `${c.code},${c.discount}%,${status}\n`;
-  });
-
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `cupons_${key}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-};
-
-// ══════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════
-window.addEventListener('load', async () => {
-  const params = new URLSearchParams(window.location.search);
-
-  if (params.get('admin') === CFG.ADMIN_PASSWORD) {
-    initAdmin();
-    return;
-  }
-
-  const btn = document.getElementById('spinBtn');
-
-  // ── Horário de Sinop/MT (America/Cuiaba, UTC-4) ──
-  function getSinopTime() {
-    const fmt = new Intl.DateTimeFormat('en-US', {
-      timeZone: CFG.TIMEZONE,
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', hour12: false
-    });
-    const p = fmt.formatToParts(new Date());
-    const g = t => parseInt(p.find(x => x.type === t).value);
-    return { year: g('year'), month: g('month'), day: g('day'), hour: g('hour') };
-  }
-
-  const st          = getSinopTime();
-  const todayStr    = String(st.day).padStart(2,'0') + String(st.month).padStart(2,'0') + st.year;
-  const activeDates = getActiveDates();
-  const { start: hourStart, end: hourEnd } = getActiveHours();
-  const isPromoDay  = activeDates.has(todayStr);
-  const inWindow    = st.hour >= hourStart && st.hour < hourEnd;
-  const tooEarly    = isPromoDay && st.hour < hourStart;
-
-  if (!isPromoDay || !inWindow) {
-    let msg = '';
-    if (!isPromoDay) {
-      msg = 'Fique ligado nas nossas promoções!';
-    } else if (tooEarly) {
-      msg = `A roleta abre às ${hourStart}h (horário de Sinop). Volte mais tarde!`;
-    } else {
-      msg = `A roleta encerrou às ${hourEnd}h. Até a próxima!`;
-    }
-
-    const title = tooEarly ? '⏳ Ainda não abriu!' : '⏰ Encerrado!';
-
-    document.querySelector(
+  
