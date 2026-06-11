@@ -1408,6 +1408,25 @@ window.addEventListener('load', async () => {
   const tooEarly    = isPromoDay && st.hour < hourStart;
 
   if (!isPromoDay || !inWindow) {
+    // Encontra a próxima data ativa futura
+    const nowTs = new Date(st.year, st.month - 1, st.day).getTime();
+    const nextDate = (CFG.ACTIVE_DATES || [])
+      .map(k => {
+        const d = parseInt(k.slice(0,2)), m = parseInt(k.slice(2,4))-1, y = parseInt(k.slice(4));
+        return { ts: new Date(y, m, d).getTime(), key: k, d, m, y };
+      })
+      .filter(x => x.ts > nowTs || (x.ts === nowTs && !inWindow && isPromoDay && !tooEarly))
+      .sort((a, b) => a.ts - b.ts)[0];
+
+    let nextMsg = '';
+    if (nextDate) {
+      const nd = new Date(nextDate.y, nextDate.m, nextDate.d);
+      const label = nd.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
+      nextMsg = `<p style="margin:16px auto 0;max-width:320px;color:var(--yellow);font-size:1rem;font-weight:700">
+        📅 Próxima promoção: ${label} às ${hourStart}h
+      </p>`;
+    }
+
     let msg = '';
     if (!isPromoDay) {
       msg = 'Fique ligado nas nossas promoÃ§Ãµes!';
@@ -1423,8 +1442,8 @@ window.addEventListener('load', async () => {
       <div style="text-align:center;padding:40px 20px;max-width:420px;margin:0 auto;">
         <div style="font-size:3.5rem;margin-bottom:12px">${tooEarly ? 'â³' : 'â°'}</div>
         <h2 style="color:#FFDF00;margin:0 0 12px;font-size:1.9rem;font-weight:900;letter-spacing:2px">${title}</h2>
-
         <p style="color:rgba(255,255,255,.88);font-size:1.05rem;line-height:1.6;max-width:320px;margin:0 auto">${msg}</p>
+        ${nextMsg}
       </div>
     `;
     return;
