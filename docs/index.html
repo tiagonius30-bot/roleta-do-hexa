@@ -1201,11 +1201,10 @@ function initAdmin() {
   renderAdminStats();
   buildAdminTabs();
 
-  // Default to today's tab
-  for (let d = 0; d < CFG.DAYS; d++) {
-    const date = new Date(START); date.setDate(date.getDate() + d);
-    if (dateToKey(date) === todayKey()) { adminCurrentDay = d; break; }
-  }
+  // Default to today's tab if found, otherwise first tab
+  const tk = todayKey();
+  const todayIdx = (CFG.ACTIVE_DATES || []).indexOf(tk);
+  adminCurrentDay = todayIdx >= 0 ? todayIdx : 0;
   renderAdminDay(adminCurrentDay);
 }
 
@@ -1226,16 +1225,22 @@ function renderAdminStats() {
 }
 
 function buildAdminTabs() {
-  const el  = document.getElementById('dayTabs');
-  const tk  = todayKey();
-  let html  = '';
-  for (let d = 0; d < CFG.DAYS; d++) {
-    const date = new Date(START); date.setDate(date.getDate() + d);
-    const key  = dateToKey(date);
-    const lbl  = `Dia ${d+1}${key === tk ? ' (Hoje)' : ''}`;
+  const el   = document.getElementById('dayTabs');
+  const tk   = todayKey();
+  const dates = CFG.ACTIVE_DATES || [];
+  let html   = '';
+  dates.forEach((key, d) => {
+    // key format: DDMMYYYY
+    const day = key.slice(0,2), mon = key.slice(2,4), yr = key.slice(4);
+    const date = new Date(`${yr}-${mon}-${day}`);
+    const label = date.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+    const isToday = key === tk;
     html += `<button class="day-tab${d === adminCurrentDay ? ' active' : ''}"
-               onclick="selectAdminDay(${d}, this)">${lbl}</button>`;
-  }
+               onclick="selectAdminDay(${d}, this)">
+               ${label}${isToday ? ' (Hoje)' : ''}
+             </button>`;
+  });
+  if (!dates.length) html = '<p style="color:rgba(255,255,255,.5);padding:8px">Nenhuma data ativa. Adicione abaixo.</p>';
   el.innerHTML = html;
 }
 
@@ -1247,8 +1252,11 @@ window.selectAdminDay = function(d, btn) {
 };
 
 function renderAdminDay(dayIdx) {
-  const date = new Date(START); date.setDate(date.getDate() + dayIdx);
-  const key  = dateToKey(date);
+  const dates = CFG.ACTIVE_DATES || [];
+  const key   = dates[dayIdx];
+  if (!key) { document.getElementById('dayContent').innerHTML = ''; return; }
+  const day = key.slice(0,2), mon = key.slice(2,4), yr = key.slice(4);
+  const date = new Date(`${yr}-${mon}-${day}`);
   const pool = ALL_COUPONS[key] || [];
   const used = getAdminUsed();
   const tk   = todayKey();
@@ -1295,8 +1303,8 @@ window.adminToggle = function(code) {
 
 // ── CSV export ────────────────────────────────
 window.exportCSV = function() {
-  const date = new Date(START); date.setDate(date.getDate() + adminCurrentDay);
-  const key  = dateToKey(date);
+  const key = (CFG.ACTIVE_DATES || [])[adminCurrentDay];
+  if (!key) return;
   const pool = ALL_COUPONS[key] || [];
   const used = getAdminUsed();
 
@@ -1312,7 +1320,7 @@ window.exportCSV = function() {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
-  a.download = `cupons_dia${adminCurrentDay+1}_${key}.csv`;
+  a.download = `cupons_${key}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 };
