@@ -1135,10 +1135,8 @@ function showResult(c) {
   document.getElementById('rEmoji').textContent = emojiFor(c.discount);
   document.getElementById('rValue').textContent = c.discount + '%';
   document.getElementById('rCode').textContent  = c.code;
-  const st2 = getSinopTime ? getSinopTime() : null;
-  const dateLabel = st2
-    ? `${String(st2.day).padStart(2,'0')}/${String(st2.month).padStart(2,'0')}/${st2.year}`
-    : todayKey().replace(/(\d{2})(\d{2})(\d{4})/,'$1/$2/$3');
+  const tk = todayKey(); // DDMMYYYY
+  const dateLabel = tk.slice(0,2) + '/' + tk.slice(2,4) + '/' + tk.slice(4);
   document.getElementById('rValid').textContent =
     `Válido hoje ${dateLabel} · das ${CFG.START_HOUR}h às ${CFG.END_HOUR}h (Sinop/MT)`;
   document.getElementById('resultModal').classList.add('show');
@@ -1463,4 +1461,4 @@ window.addEventListener('load', async () => {
 });
 </script>
 </body>
-</html>
+</html>                                                                                                                    
