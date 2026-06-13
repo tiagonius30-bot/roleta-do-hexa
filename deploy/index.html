@@ -649,7 +649,9 @@ function dateToKey(d) {
 
 const START = new Date(CFG.START_DATE + 'T00:00:00');
 
-// ALL_COUPONS: { 'DDMMYYYY': [ {code, discount, dateKey}, … ] }
+// ALL_COUPONS: { 'DDMMYYYY': [ {id, code, discount, dateKey}, … ] }
+// id   = identificador único do slot (ex: HEXA30-13062026-2) — usado para tracking
+// code = cupom que o cliente digita no cardápio (ex: HEXA30)
 const ALL_COUPONS = (() => {
   const out = {};
   for (let day = 0; day < CFG.DAYS; day++) {
@@ -660,13 +662,14 @@ const ALL_COUPONS = (() => {
     SLOTS.forEach(sl => {
       for (let i = 1; i <= sl.n; i++) {
         pool.push({
-          code:     `HEXA${sl.d}`,   // código simples cadastrado na plataforma
+          id:       `HEXA${sl.d}-${key}-${i}`,  // único por slot
+          code:     `HEXA${sl.d}`,               // código no cardápio
           discount: sl.d,
           dateKey:  key,
         });
       }
     });
-    seededShuffle(pool, day * 31337 + 9001); // deterministic shuffle per day
+    seededShuffle(pool, day * 31337 + 9001);
     out[key] = pool;
   }
   return out;
@@ -679,7 +682,12 @@ const ALL_COUPONS = (() => {
       const pool = [];
       SLOTS.forEach(sl => {
         for (let j = 1; j <= sl.n; j++) {
-          pool.push({ code: `HEXA${sl.d}`, discount: sl.d, dateKey: key });
+          pool.push({
+            id:       `HEXA${sl.d}-${key}-${j}`,
+            code:     `HEXA${sl.d}`,
+            discount: sl.d,
+            dateKey:  key,
+          });
         }
       });
       seededShuffle(pool, i * 13337 + 77777);
@@ -937,8 +945,10 @@ function getSavedCoupon() {
 
 function saveCoupon(c) {
   localStorage.setItem(fpDayKey(), JSON.stringify(c));
+  // Usa c.id (único por slot) como chave — evita marcar todos do mesmo código
+  const trackId = c.id || c.code;
   const used = getAdminUsed();
-  if (!used[c.code]) used[c.code] = { ts: Date.now(), via: 'customer' };
+  if (!used[trackId]) used[trackId] = { ts: Date.now(), via: 'customer', code: c.code };
   localStorage.setItem(LS_USED, JSON.stringify(used));
 }
 
@@ -946,10 +956,10 @@ function getAdminUsed() {
   try { return JSON.parse(localStorage.getItem(LS_USED) || '{}'); } catch { return {}; }
 }
 
-function toggleAdminUsed(code) {
+function toggleAdminUsed(id) {
   const used = getAdminUsed();
-  if (used[code]) { delete used[code]; }
-  else            { used[code] = { ts: Date.now(), via: 'admin' }; }
+  if (used[id]) { delete used[id]; }
+  else          { used[id] = { ts: Date.now(), via: 'admin' }; }
   localStorage.setItem(LS_USED, JSON.stringify(used));
 }
 
@@ -1074,7 +1084,7 @@ function spinWheel() {
   if (!pool) { alert('Promoção não ativa hoje. Volte amanhã!'); return; }
 
   const adminUsed = getAdminUsed();
-  const available = pool.filter(c => !adminUsed[c.code]);
+  const available = pool.filter(c => !adminUsed[c.id || c.code]);
   if (available.length === 0) { alert('Todos os cupons do dia foram utilizados! Volte amanhã.'); return; }
 
   // ── Cupom determinístico: mesmo dispositivo = mesmo cupom no dia ──
@@ -1268,9 +1278,9 @@ function renderAdminStats() {
   const used   = getAdminUsed();
   const tk     = todayKey();
   const todayP = ALL_COUPONS[tk] || [];
-  const usedT  = todayP.filter(c => used[c.code]).length;
+  const usedT  = todayP.filter(c => used[c.id || c.code]).length;
   const totalA = Object.values(ALL_COUPONS).flat().length;
-  const usedA  = Object.values(ALL_COUPONS).flat().filter(c => used[c.code]).length;
+  const usedA  = Object.values(ALL_COUPONS).flat().filter(c => used[c.id || c.code]).length;
 
   document.getElementById('statsRow').innerHTML = `
     <div class="stat-box"><div class="sn">${CFG.DAYS}</div><div class="sl">Dias</div></div>
@@ -1318,7 +1328,7 @@ function renderAdminDay(dayIdx) {
   const tk   = todayKey();
   const isToday = key === tk;
 
-  const usedCount = pool.filter(c => used[c.code]).length;
+  const usedCount = pool.filter(c => used[c.id || c.code]).length;
 
   let html = `<div class="day-card">
     <div class="day-card-header">
@@ -1335,13 +1345,14 @@ function renderAdminDay(dayIdx) {
       <div class="slot-title">${sl.label} de desconto — ${group.length} cupom${group.length>1?'s':''}</div>
       <div class="code-grid">`;
     group.forEach(c => {
-      const isUsed  = !!used[c.code];
+      const trackId  = c.id || c.code;
+      const isUsed   = !!used[trackId];
       const usedInfo = isUsed
-        ? `(${used[c.code].via === 'admin' ? 'Admin' : 'Cliente'} ${new Date(used[c.code].ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})})`
+        ? `(${used[trackId].via === 'admin' ? 'Admin' : 'Cliente'} ${new Date(used[trackId].ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})})`
         : '';
-      html += `<div class="code-item ${isUsed ? 'used' : ''}" id="ci-${c.code}">
+      html += `<div class="code-item ${isUsed ? 'used' : ''}" id="ci-${trackId}">
         <span class="ci-code" title="${usedInfo}">${c.code}</span>
-        <button class="mark-btn" onclick="adminToggle('${c.code}')">${isUsed ? '↩ Reverter' : 'Marcar Usado'}</button>
+        <button class="mark-btn" onclick="adminToggle('${trackId}')">${isUsed ? '↩ Reverter' : 'Marcar Usado'}</button>
       </div>`;
     });
     html += '</div></div>';
@@ -1351,8 +1362,8 @@ function renderAdminDay(dayIdx) {
   document.getElementById('dayContent').innerHTML = html;
 }
 
-window.adminToggle = function(code) {
-  toggleAdminUsed(code);
+window.adminToggle = function(id) {
+  toggleAdminUsed(id);
   renderAdminStats();
   renderAdminDay(adminCurrentDay);
 };
@@ -1366,8 +1377,9 @@ window.exportCSV = function() {
 
   let csv = 'Codigo,Desconto,Status\n';
   pool.forEach(c => {
-    const status = used[c.code]
-      ? `Usado (${used[c.code].via})`
+    const trackId = c.id || c.code;
+    const status  = used[trackId]
+      ? `Usado (${used[trackId].via})`
       : 'Disponivel';
     csv += `${c.code},${c.discount}%,${status}\n`;
   });
@@ -1448,23 +1460,4 @@ window.addEventListener('load', async () => {
       <div style="text-align:center;padding:40px 20px;max-width:420px;margin:0 auto;">
         <div style="font-size:3.5rem;margin-bottom:12px">${tooEarly ? '⏳' : '⏰'}</div>
         <h2 style="color:#FFDF00;margin:0 0 12px;font-size:1.9rem;font-weight:900;letter-spacing:2px">${title}</h2>
-        <p style="color:rgba(255,255,255,.88);font-size:1.05rem;line-height:1.6;max-width:320px;margin:0 auto">${msg}</p>
-        ${nextMsg}
-      </div>
-    `;
-    return;
-  }
-
-  // ── Init fingerprint (async, melhora unicidade) ──
-  await initFingerprint();
-
-  // ── Checa se já girou hoje (logo ao abrir, sem precisar clicar) ──
-  const savedOnLoad = getSavedCoupon();
-  if (savedOnLoad) { showAlreadySpun(savedOnLoad); }
-
-  // ── Wheel already drawn at script parse time; redraw after fp ready ──
-  drawWheel(curAngle);
-});
-</script>
-</body>
-</html>
+        <p style="color:rgba(255,255,255,.88);font-size:1.05re
