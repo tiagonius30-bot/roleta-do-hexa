@@ -887,7 +887,13 @@ async function cfgPublish() {
       headers,
       body: JSON.stringify({
         message: `Admin: atualiza datas ativas (${now})`,
-        content: btoa(unescape(encodeURIComponent(html))),
+        content: (() => {
+          const enc = new TextEncoder();
+          const bytes = enc.encode(html);
+          let bin = '';
+          bytes.forEach(b => bin += String.fromCharCode(b));
+          return btoa(bin);
+        })(),
         sha: currentSha
       })
     });
@@ -1461,4 +1467,4 @@ window.addEventListener('load', async () => {
 });
 </script>
 </body>
-</html>                                                                                                                    
+</html>
