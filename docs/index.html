@@ -1022,22 +1022,28 @@ const canvas = document.getElementById('wheelCanvas');
 const ctx    = canvas.getContext('2d');
 
 (function sizeCanvas() {
-  const sz = Math.min(390, window.innerWidth - 40);
-  canvas.width  = sz;
-  canvas.height = sz;
+  const dpr = window.devicePixelRatio || 1;
+  const sz  = Math.min(390, window.innerWidth - 40);
+  canvas.style.width  = sz + 'px';
+  canvas.style.height = sz + 'px';
+  canvas.width  = Math.round(sz * dpr);
+  canvas.height = Math.round(sz * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  canvas._sz = sz;
 })();
 
 let curAngle  = -Math.PI / 2;  // start with slot-0 at top
 let spinning  = false;
 
 function drawWheel(rot) {
-  const cx     = canvas.width  / 2;
-  const cy     = canvas.height / 2;
+  const sz     = canvas._sz || canvas.width;
+  const cx     = sz / 2;
+  const cy     = sz / 2;
   const R      = cx - 6;
   const prizes = CFG.PRIZES || [];
   const total  = prizes.reduce((s,p) => s+(p.qty||0), 0);
   if (!total) return;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, sz, sz);
   let a = rot;
   prizes.forEach(p => {
     const arc   = (p.qty/total) * Math.PI * 2;
@@ -1052,16 +1058,19 @@ function drawWheel(rot) {
       ctx.translate(cx+Math.cos(mid)*tr, cy+Math.sin(mid)*tr);
       ctx.rotate(mid+Math.PI/2);
       ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.shadowColor='rgba(0,0,0,.7)'; ctx.shadowBlur=3;
+      ctx.shadowBlur=0;
       ctx.fillStyle=p.fg||'#fff';
       if (arcPx>90) {
-        const esz=arcPx>140?20:15;
+        const esz=arcPx>140?22:17;
         ctx.font=`${esz}px serif`; ctx.fillText(p.emoji||'🎁',0,-esz*.6);
-        ctx.font=`bold ${arcPx>140?11:9}px Arial`;
+        const fsz=arcPx>140?13:10;
+        ctx.font=`bold ${fsz}px Arial`;
+        ctx.strokeStyle='rgba(0,0,0,.7)'; ctx.lineWidth=3; ctx.lineJoin='round';
         const nm=(p.name||'').length>11?(p.name).slice(0,10)+'…':(p.name||'');
-        ctx.fillText(nm,0,esz*.7);
+        ctx.strokeText(nm,0,esz*.75); ctx.fillText(nm,0,esz*.75);
       } else if (arcPx>40) {
-        ctx.font=`${arcPx>60?16:12}px serif`; ctx.fillText(p.emoji||'🎁',0,0);
+        const esz=arcPx>60?18:14;
+        ctx.font=`${esz}px serif`; ctx.fillText(p.emoji||'🎁',0,0);
       } else { ctx.fillRect(-1.5,-1.5,3,3); }
       ctx.restore();
     }
@@ -1075,8 +1084,8 @@ function drawWheel(rot) {
   ctx.fillStyle=grad; ctx.fill();
   ctx.strokeStyle='#003d15'; ctx.lineWidth=2.5; ctx.stroke();
   ctx.shadowBlur=0; ctx.fillStyle='#003d15';
-  ctx.font='bold 8.5px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText('HEXA',cx,cy-5); ctx.font='13px serif'; ctx.fillText('🏆',cx,cy+7);
+  ctx.font='bold 11px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('HEXA',cx,cy-6); ctx.font='15px serif'; ctx.fillText('🏆',cx,cy+8);
 }
 
 drawWheel(curAngle);
