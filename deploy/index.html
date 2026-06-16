@@ -447,7 +447,7 @@
   <div class="header">
     <h1>🏆 ROLETA DO HEXA</h1>
     <div class="sub">Costaneiras Grill</div>
-    <div class="tip">🎯 Gire a roleta e ganhe seu desconto especial!</div>
+    <div class="tip">🎯 Gire a roleta e ganhe seu prêmio especial!</div>
   </div>
 
   <div class="wheel-section">
@@ -469,10 +469,11 @@
     <!-- Already spun today -->
     <div class="already-box" id="alreadyBox">
       <h3>✅ Você já girou hoje!</h3>
-      <p style="color:rgba(255,255,255,.7);font-size:.88rem">Seu cupom do dia:</p>
+      <p style="color:rgba(255,255,255,.7);font-size:.88rem">Seu prêmio do dia:</p>
       <div class="saved-code" id="savedCodeDisplay"></div>
       <button class="goto-btn" onclick="goToMenu()">🍽️ Ir para o Cardápio</button>
-      <p style="color:rgba(255,255,255,.45);font-size:.72rem;margin-top:8px">Válido somente hoje até meia-noite</p>
+      <div id="savedPrizeCode" style="font-size:.75rem;color:rgba(255,255,255,.5);margin-top:4px;display:none"></div>
+      <p style="color:rgba(255,255,255,.45);font-size:.72rem;margin-top:8px">Válido somente hoje no horário da promoção</p>
     </div>
   </div>
 </div>
@@ -483,19 +484,19 @@
 <div class="modal-overlay" id="resultModal">
   <div class="result-card">
     <div class="r-emoji"  id="rEmoji">🎉</div>
-    <div class="r-parabens">Parabéns! Você ganhou</div>
-    <div class="r-value"  id="rValue">50%</div>
-    <div class="r-sub">de desconto no seu pedido!</div>
-    <div class="coupon-box">
-      <div class="cb-label">📋 Seu Cupom</div>
-      <div class="cb-code"  id="rCode">HEXA-XXXXX</div>
-      <div class="cb-valid" id="rValid">Válido hoje até meia-noite</div>
-      <button class="copy-btn" id="copyBtn" onclick="copyCoupon()">📋 COPIAR CUPOM</button>
+    <div class="r-parabens" id="rParabens">Parabéns! Você ganhou</div>
+    <div class="r-value"  id="rValue">🎁</div>
+    <div class="r-sub" id="rSub">Apresente ao funcionário para resgatar!</div>
+    <div class="coupon-box" id="couponBox">
+      <div class="cb-label">🎁 Seu Prêmio</div>
+      <div class="cb-code"  id="rCode">---</div>
+      <div class="cb-valid" id="rValid">Válido hoje</div>
+      <button class="copy-btn" id="copyBtn" onclick="copyCoupon()">📋 COPIAR CÓDIGO</button>
     </div>
-    <button class="claim-btn" onclick="claimAndGo()">
-      🍽️ USAR DESCONTO AGORA!
+    <button class="claim-btn" id="claimBtn" onclick="claimAndGo()">
+      🍽️ VER CARDÁPIO
     </button>
-    <p class="r-note">Apresente esse cupom ao realizar seu pedido</p>
+    <p class="r-note" id="rNote">Apresente esse código ao funcionário para resgatar seu prêmio</p>
   </div>
 </div>
 
@@ -590,10 +591,27 @@
     </div>
   </details>
 
+  <!-- ── Editar Roleta ── -->
+  <details id="prizes-section" style="margin-bottom:18px;border:1.5px solid rgba(255,223,0,.5);border-radius:10px;overflow:hidden;">
+    <summary style="padding:12px 16px;background:rgba(0,0,0,.45);cursor:pointer;color:var(--yellow);font-weight:700;font-size:.95rem;list-style:none;display:flex;align-items:center;gap:8px;">
+      🎡 Editar Roleta (prêmios)
+    </summary>
+    <div style="padding:16px;background:rgba(0,0,0,.25);">
+      <p style="color:rgba(255,255,255,.65);font-size:.82rem;margin:0 0 12px">Configure os prêmios da roleta. Clique em <strong style="color:var(--yellow)">Publicar Roleta</strong> para salvar.</p>
+      <div id="prizes-list" style="margin-bottom:12px;"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" onclick="prizeAdd()"
+                style="padding:8px 16px;background:var(--green-dark);border:none;border-radius:8px;color:var(--yellow);font-weight:700;cursor:pointer;font-size:.9rem;">➕ Adicionar prêmio</button>
+        <button type="button" id="prizes-publish-btn" onclick="prizesPublish()"
+                style="padding:8px 20px;background:linear-gradient(135deg,rgba(0,180,100,.3),rgba(0,120,60,.3));border:2px solid #0c6;border-radius:8px;color:#0f0;font-weight:800;cursor:pointer;font-size:.9rem;">🚀 Publicar Roleta</button>
+      </div>
+      <div id="prizes-msg" style="margin-top:8px;font-size:.85rem;min-height:20px;color:#0c6;"></div>
+    </div>
+  </details>
+
   <div class="adm-note">
-    ℹ️ <strong>Como validar:</strong> quando o cliente mostrar o cupom, localize o código aqui e clique em
-    <em>"Marcar Usado"</em>. Os cupons marcados ficam salvos neste dispositivo.
-    Cada código é único e só pode ser apresentado uma vez pelo cliente (limitação por navegador).
+    ℹ️ <strong>Como validar:</strong> quando o cliente mostrar o prêmio, localize o código aqui e clique em
+    <em>"Marcar Entregue"</em>. Os prêmios marcados ficam salvos neste dispositivo e no Firebase.
   </div>
   <div class="stats-row" id="statsRow"></div>
   <div class="day-tabs"  id="dayTabs"></div>
@@ -604,7 +622,7 @@
 </div>
 
 <div class="footer">
-  Roleta do Hexa © 2026 · Costaneiras Grill · Um cupom por cliente por dia
+  Roleta do Hexa © 2026 · Costaneiras Grill · Um prêmio por cliente por dia
 </div>
 
 <script>
@@ -614,38 +632,25 @@
 const CFG = {
   START_DATE:     '2026-06-13',   // Dia da promoção
   DAYS:           1,              // Apenas 1 dia
-  START_HOUR:     17,             // Abre às 17h (horário Sinop/MT)
+  START_HOUR:     9,             // Abre às 17h (horário Sinop/MT)
   END_HOUR:       23,             // Encerra às 23h (horário Sinop/MT)
   TIMEZONE:       'America/Cuiaba', // Fuso de Sinop-MT (UTC-4)
   MENU_URL:       'https://costaneirasgrill.com.br/centro/pedidos?utm_source=META&utm_campaign=delivery',
   ADMIN_USER:     'costaneiras',
   ADMIN_PASSWORD: 'HEXAADMIN',
-  ACTIVE_DATES:   ["10062026","13062026"],   // Datas ativas — gerenciado pelo painel admin
+  ACTIVE_DATES:   [],   // Datas ativas — gerenciado pelo painel admin
+  PRIZES: [{"name":"Refrigerante","emoji":"🥤","qty":10,"color":"#FF6B6B","fg":"#fff","noWin":false},{"name":"Entrega Grátis","emoji":"🛵","qty":5,"color":"#4ECDC4","fg":"#003d15","noWin":false},{"name":"Pizza Grande","emoji":"🍕","qty":2,"color":"#FFE66D","fg":"#004d1a","noWin":false},{"name":"Pizza Doce","emoji":"🍰","qty":3,"color":"#FF9FF3","fg":"#003d15","noWin":false},{"name":"Não foi desta vez","emoji":"😅","qty":30,"color":"#333333","fg":"rgba(255,255,255,.5)","noWin":true}], // HEXA_PRIZES
 };
 
 // ══════════════════════════════════════════════
-// SLOTS  — 13 níveis, total 50 cupons/dia
+// PRIZE POOL HELPERS
 // ══════════════════════════════════════════════
-// Distribuição:
-//   5 % → 9 |  10 % → 8 |  15 % → 7 |  20 % → 6 |  25 % → 5
-//  30 % → 4 |  35 % → 3 |  40 % → 2 |  45 % → 1
-//  50 % → 2 |  70 % → 1 |  80 % → 1 | 100 % → 1   Total = 50 ✓
-const SLOTS = [
-  { d:  5, n: 9, label:  '5%', bg:'#009C3B', fg:'#FFDF00' },
-  { d: 10, n: 8, label: '10%', bg:'#FFDF00', fg:'#004d1a' },
-  { d: 15, n: 7, label: '15%', bg:'#007A2F', fg:'#FFDF00' },
-  { d: 20, n: 6, label: '20%', bg:'#FFB800', fg:'#004d1a' },
-  { d: 25, n: 5, label: '25%', bg:'#00AA44', fg:'#FFDF00' },
-  { d: 30, n: 4, label: '30%', bg:'#FFDF00', fg:'#004d1a' },
-  { d: 35, n: 3, label: '35%', bg:'#006622', fg:'#FFDF00' },
-  { d: 40, n: 2, label: '40%', bg:'#FFC200', fg:'#004d1a' },
-  { d: 45, n: 1, label: '45%', bg:'#004d1a', fg:'#FFDF00' },
-  { d: 50, n: 2, label: '50%', bg:'#FFD700', fg:'#004d1a' },
-  { d: 70, n: 1, label: '70%', bg:'#FF8C00', fg:'#ffffff' },
-  { d: 80, n: 1, label: '80%', bg:'#E65C00', fg:'#ffffff' },
-  { d:100, n: 1, label:'100%', bg:'#CC0000', fg:'#FFD700' },
-];
-const TOTAL = SLOTS.reduce((s, sl) => s + sl.n, 0); // 50
+function prizeSlug(name) {
+  return name.toUpperCase()
+    .replace(/[ÀÁÂÃÄ]/g,'A').replace(/[ÈÉÊ]/g,'E').replace(/[ÌÍÎÏ]/g,'I')
+    .replace(/[ÒÓÔÕÖ]/g,'O').replace(/[ÙÚÛÜ]/g,'U').replace(/Ç/g,'C')
+    .replace(/[^A-Z0-9]/g,'').slice(0,6) || 'PRIZE';
+}
 
 // ══════════════════════════════════════════════
 // COUPON GENERATION
@@ -669,51 +674,22 @@ function dateToKey(d) {
 
 const START = new Date(CFG.START_DATE + 'T00:00:00');
 
-// ALL_COUPONS: { 'DDMMYYYY': [ {id, code, discount, dateKey}, … ] }
-// id   = identificador único do slot (ex: HEXA30-13062026-2) — usado para tracking
-// code = cupom que o cliente digita no cardápio (ex: HEXA30)
-const ALL_COUPONS = (() => {
+// ALL_PRIZES: { 'DDMMYYYY': [ {id, name, emoji, color, fg, noWin, prizeIdx, dateKey} ] }
+const ALL_PRIZES = (() => {
   const out = {};
-  for (let day = 0; day < CFG.DAYS; day++) {
-    const date = new Date(START);
-    date.setDate(date.getDate() + day);
-    const key  = dateToKey(date);
+  (CFG.ACTIVE_DATES || []).forEach((key, dayIdx) => {
     const pool = [];
-    SLOTS.forEach(sl => {
-      for (let i = 1; i <= sl.n; i++) {
-        pool.push({
-          id:       `HEXA${sl.d}-${key}-${i}`,  // único por slot
-          code:     `HEXA${sl.d}`,               // código no cardápio
-          discount: sl.d,
-          dateKey:  key,
-        });
+    (CFG.PRIZES || []).forEach((p, pi) => {
+      for (let i = 1; i <= (p.qty||0); i++) {
+        pool.push({ id:`${prizeSlug(p.name)}-${key}-${i}`, name:p.name,
+          emoji:p.emoji||'🎁', color:p.color||'#555', fg:p.fg||'#fff',
+          noWin:!!p.noWin, prizeIdx:pi, dateKey:key });
       }
     });
-    seededShuffle(pool, day * 31337 + 9001);
+    seededShuffle(pool, dayIdx * 31337 + 9001);
     out[key] = pool;
-  }
-  return out;
-})();
-
-// ── Garante cupons para todos os dias em CFG.ACTIVE_DATES ──
-(function ensureActiveDays() {
-  (CFG.ACTIVE_DATES || []).forEach((key, i) => {
-    if (!ALL_COUPONS[key]) {
-      const pool = [];
-      SLOTS.forEach(sl => {
-        for (let j = 1; j <= sl.n; j++) {
-          pool.push({
-            id:       `HEXA${sl.d}-${key}-${j}`,
-            code:     `HEXA${sl.d}`,
-            discount: sl.d,
-            dateKey:  key,
-          });
-        }
-      });
-      seededShuffle(pool, i * 13337 + 77777);
-      ALL_COUPONS[key] = pool;
-    }
   });
+  return out;
 })();
 
 // ══════════════════════════════════════════════
@@ -801,7 +777,7 @@ async function initFingerprint() {
 // CONFIGURAÇÃO DINÂMICA (admin localStorage)
 // ══════════════════════════════════════════════
 function getActiveDates() {
-  return new Set(CFG.ACTIVE_DATES || []);
+  return new Set(Object.keys(ALL_PRIZES));
 }
 
 function getActiveHours() {
@@ -904,6 +880,8 @@ async function cfgPublish() {
     const _bytes = Uint8Array.from(_bin, c => c.charCodeAt(0));
     let html = new TextDecoder('utf-8').decode(_bytes);
     html = html.replace(/ACTIVE_DATES:\s*\[.*?\]/, `ACTIVE_DATES:   ${JSON.stringify(dates)}`);
+    const pendP=_cfgPendingPrizes||CFG.PRIZES||[];
+    html=html.replace(/PRIZES:\s*\[.*?\]\/\/ HEXA_PRIZES/,`PRIZES: ${JSON.stringify(pendP)} // HEXA_PRIZES`);
     html = html.replace(/(START_HOUR:\s*)\d+/, `$1${sh}`);
     html = html.replace(/(END_HOUR:\s*)\d+/,   `$1${eh}`);
 
@@ -941,10 +919,11 @@ async function cfgPublish() {
 }
 
 function cfgInitUI() {
-  _cfgPendingDates = null;
+  _cfgPendingDates=null; _cfgPendingPrizes=null;
   document.getElementById('cfg-start-hour').value = CFG.START_HOUR;
   document.getElementById('cfg-end-hour').value   = CFG.END_HOUR;
   cfgRenderDates();
+  prizesRender();
   const fbUrl = fbGetUrl();
   if (fbUrl) {
     document.getElementById('firebase-url-input').value = fbUrl;
@@ -1007,18 +986,17 @@ function getSavedCoupon() {
   } catch { return null; }
 }
 
-function saveCoupon(c) {
+function savePrize(c) {
   localStorage.setItem(fpDayKey(), JSON.stringify(c));
-  const trackId = c.id || c.code;
-  const record  = { ts: Date.now(), via: 'customer', code: c.code };
-  const used    = getAdminUsed();
-  if (!used[trackId]) {
-    used[trackId] = record;
+  const record = { ts: Date.now(), via: 'customer', name: c.name, emoji: c.emoji, noWin: !!c.noWin };
+  const used   = getAdminUsed();
+  if (!used[c.id]) {
+    used[c.id] = record;
     localStorage.setItem(LS_USED, JSON.stringify(used));
   }
-  // Firebase: marca automaticamente no admin de qualquer dispositivo
-  fbWrite(`used/${c.dateKey || todayKey()}/${trackId}`, record);
+  fbWrite(`used/${c.dateKey || todayKey()}/${c.id}`, record);
 }
+function saveCoupon(c) { savePrize(c); }
 
 function getAdminUsed() {
   try { return JSON.parse(localStorage.getItem(LS_USED) || '{}'); } catch { return {}; }
@@ -1053,77 +1031,52 @@ let curAngle  = -Math.PI / 2;  // start with slot-0 at top
 let spinning  = false;
 
 function drawWheel(rot) {
-  const cx = canvas.width  / 2;
-  const cy = canvas.height / 2;
-  const R  = cx - 6;
-
+  const cx     = canvas.width  / 2;
+  const cy     = canvas.height / 2;
+  const R      = cx - 6;
+  const prizes = CFG.PRIZES || [];
+  const total  = prizes.reduce((s,p) => s+(p.qty||0), 0);
+  if (!total) return;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
   let a = rot;
-  SLOTS.forEach(sl => {
-    const arc = (sl.n / TOTAL) * Math.PI * 2;
-
-    // fill
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, R, a, a + arc);
-    ctx.closePath();
-    ctx.fillStyle = sl.bg;
-    ctx.fill();
-
-    // divider
-    ctx.strokeStyle = 'rgba(0,0,0,.22)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    // label
-    const mid    = a + arc / 2;
-    const arcPx  = arc * R;
-    const fSize  = arcPx > 65 ? 15 : arcPx > 38 ? 12 : 9;
-    const tRadius = R * 0.70;
-
-    ctx.save();
-    ctx.translate(cx + Math.cos(mid) * tRadius, cy + Math.sin(mid) * tRadius);
-    ctx.rotate(mid + Math.PI / 2);
-    ctx.textAlign    = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font         = `bold ${fSize}px Arial`;
-    ctx.shadowColor  = 'rgba(0,0,0,.5)';
-    ctx.shadowBlur   = 2;
-    ctx.fillStyle    = sl.fg;
-    ctx.fillText(sl.label, 0, 0);
-    ctx.restore();
-
-    a += arc;
+  prizes.forEach(p => {
+    const arc   = (p.qty/total) * Math.PI * 2;
+    const arcPx = arc * R;
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,R,a,a+arc); ctx.closePath();
+    ctx.fillStyle = p.color||'#555'; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth=1.5; ctx.stroke();
+    if (arcPx > 18) {
+      const mid=a+arc/2, tr=R*0.67;
+      ctx.save();
+      ctx.translate(cx+Math.cos(mid)*tr, cy+Math.sin(mid)*tr);
+      ctx.rotate(mid+Math.PI/2);
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.shadowColor='rgba(0,0,0,.7)'; ctx.shadowBlur=3;
+      ctx.fillStyle=p.fg||'#fff';
+      if (arcPx>90) {
+        const esz=arcPx>140?20:15;
+        ctx.font=`${esz}px serif`; ctx.fillText(p.emoji||'🎁',0,-esz*.6);
+        ctx.font=`bold ${arcPx>140?11:9}px Arial`;
+        const nm=(p.name||'').length>11?(p.name).slice(0,10)+'…':(p.name||'');
+        ctx.fillText(nm,0,esz*.7);
+      } else if (arcPx>40) {
+        ctx.font=`${arcPx>60?16:12}px serif`; ctx.fillText(p.emoji||'🎁',0,0);
+      } else { ctx.fillRect(-1.5,-1.5,3,3); }
+      ctx.restore();
+    }
+    a+=arc;
   });
-
-  // outer ring
-  ctx.beginPath();
-  ctx.arc(cx, cy, R, 0, Math.PI * 2);
-  ctx.strokeStyle = '#FFDF00';
-  ctx.lineWidth   = 3;
-  ctx.stroke();
-
-  // center cap
-  const grad = ctx.createRadialGradient(cx, cy, 4, cx, cy, 30);
-  grad.addColorStop(0, '#FFE040');
-  grad.addColorStop(1, '#FF9900');
-  ctx.beginPath();
-  ctx.arc(cx, cy, 30, 0, Math.PI * 2);
-  ctx.fillStyle   = grad;
-  ctx.fill();
-  ctx.strokeStyle = '#003d15';
-  ctx.lineWidth   = 2.5;
-  ctx.stroke();
-
-  ctx.shadowBlur   = 0;
-  ctx.fillStyle    = '#003d15';
-  ctx.font         = 'bold 8.5px Arial';
-  ctx.textAlign    = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('HEXA',  cx, cy - 5);
-  ctx.font = '13px serif';
-  ctx.fillText('🏆',    cx, cy + 7);
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.strokeStyle='#FFDF00'; ctx.lineWidth=3; ctx.stroke();
+  const grad=ctx.createRadialGradient(cx,cy,4,cx,cy,30);
+  grad.addColorStop(0,'#FFE040'); grad.addColorStop(1,'#FF9900');
+  ctx.beginPath(); ctx.arc(cx,cy,30,0,Math.PI*2);
+  ctx.fillStyle=grad; ctx.fill();
+  ctx.strokeStyle='#003d15'; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.shadowBlur=0; ctx.fillStyle='#003d15';
+  ctx.font='bold 8.5px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('HEXA',cx,cy-5); ctx.font='13px serif'; ctx.fillText('🏆',cx,cy+7);
 }
 
 drawWheel(curAngle);
@@ -1154,25 +1107,18 @@ function spinWheel() {
   const saved = getSavedCoupon();
   if (saved) { showAlreadySpun(saved); return; }
 
-  const pool = ALL_COUPONS[todayKey()];
+  const pool = ALL_PRIZES[todayKey()];
   if (!pool) { alert('Promoção não ativa hoje. Volte amanhã!'); return; }
-
   const adminUsed = getAdminUsed();
-  const available = pool.filter(c => !adminUsed[c.id || c.code]);
-  if (available.length === 0) { alert('Todos os cupons do dia foram utilizados! Volte amanhã.'); return; }
-
-  // ── Cupom determinístico: mesmo dispositivo = mesmo cupom no dia ──
-  // Garante que girar em modo anônimo dá o mesmo resultado
+  const available = pool.filter(c => !adminUsed[c.id]);
+  if (available.length === 0) { alert('Todos os prêmios do dia foram utilizados! Volte amanhã.'); return; }
   const idx    = deterministicIndex(available);
   const winner = available[idx];
-
-  // find slot index
-  const si = SLOTS.findIndex(s => s.d === winner.discount);
-
-  // calculate where that slot sits (angles when rot=0)
+  const prizes = CFG.PRIZES || [];
+  const total  = prizes.reduce((s,p) => s+(p.qty||0), 0);
   let slotStart = 0;
-  for (let i = 0; i < si; i++) slotStart += (SLOTS[i].n / TOTAL) * Math.PI * 2;
-  const slotArc = (SLOTS[si].n / TOTAL) * Math.PI * 2;
+  for (let i=0; i<winner.prizeIdx; i++) slotStart += (prizes[i].qty/total)*Math.PI*2;
+  const slotArc = (prizes[winner.prizeIdx].qty/total)*Math.PI*2;
 
   // random landing point within slot (avoid extremes)
   const landAngle = slotStart + slotArc * (.2 + Math.random() * .6);
@@ -1203,7 +1149,7 @@ function spinWheel() {
 
     curAngle = finalRot;
     spinning = false;
-    saveCoupon(winner);
+    savePrize(winner);
     setTimeout(() => showResult(winner), 320);
   }
   requestAnimationFrame(tick);
@@ -1212,31 +1158,41 @@ function spinWheel() {
 // ══════════════════════════════════════════════
 // RESULT / MODAL
 // ══════════════════════════════════════════════
-function emojiFor(d) {
-  if (d >= 100) return '🏆🎊';
-  if (d >= 80)  return '🥇⭐';
-  if (d >= 70)  return '🥈🎯';
-  if (d >= 50)  return '🎉';
-  if (d >= 30)  return '😄';
-  return '🎈';
-}
-
 function showResult(c) {
-  document.getElementById('rEmoji').textContent = emojiFor(c.discount);
-  document.getElementById('rValue').textContent = c.discount + '%';
-  document.getElementById('rCode').textContent  = c.code;
-  const tk = todayKey(); // DDMMYYYY
-  const dateLabel = tk.slice(0,2) + '/' + tk.slice(2,4) + '/' + tk.slice(4);
-  document.getElementById('rValid').textContent =
-    `Válido hoje ${dateLabel} · das ${CFG.START_HOUR}h às ${CFG.END_HOUR}h (Sinop/MT)`;
+  const tk=todayKey(), dl=tk.slice(0,2)+'/'+tk.slice(2,4)+'/'+tk.slice(4);
+  document.getElementById('rEmoji').textContent = c.emoji||'🎁';
+  document.getElementById('rValue').textContent = c.name ||'Prêmio';
+  if (c.noWin) {
+    document.getElementById('rParabens').textContent   = 'Que pena... 😅';
+    document.getElementById('rSub').textContent        = 'Não foi desta vez. Tente amanhã!';
+    document.getElementById('couponBox').style.display = 'none';
+    document.getElementById('claimBtn').style.display  = 'none';
+    document.getElementById('rNote').style.display     = 'none';
+  } else {
+    document.getElementById('rParabens').textContent   = 'Parabéns! Você ganhou';
+    document.getElementById('rSub').textContent        = 'Mostre esse código ao funcionário!';
+    document.getElementById('rCode').textContent       = c.id;
+    document.getElementById('couponBox').style.display = '';
+    document.getElementById('claimBtn').style.display  = '';
+    document.getElementById('rNote').style.display     = '';
+    launchConfetti(60);
+  }
+  document.getElementById('rValid').textContent=`Válido hoje ${dl} · das ${CFG.START_HOUR}h às ${CFG.END_HOUR}h (Sinop/MT)`;
   document.getElementById('resultModal').classList.add('show');
-  if (c.discount >= 50) launchConfetti(c.discount >= 80 ? 80 : 45);
 }
 
 function showAlreadySpun(c) {
-  document.getElementById('savedCodeDisplay').textContent = c.code;
-  document.getElementById('alreadyBox').style.display = 'block';
-  document.getElementById('spinBtn').style.display    = 'none';
+  const disp=document.getElementById('savedCodeDisplay');
+  const codeEl=document.getElementById('savedPrizeCode');
+  if (c&&c.noWin) {
+    disp.textContent=(c.emoji||'😅')+' '+(c.name||'Não foi desta vez');
+    if(codeEl) codeEl.style.display='none';
+  } else if (c) {
+    disp.textContent=(c.emoji||'🎁')+' '+(c.name||'Prêmio');
+    if(codeEl){codeEl.textContent='Código: '+c.id; codeEl.style.display='block';}
+  }
+  document.getElementById('alreadyBox').style.display='block';
+  document.getElementById('spinBtn').style.display='none';
 }
 
 function copyCoupon() {
@@ -1246,7 +1202,7 @@ function copyCoupon() {
     btn.textContent = '✅ COPIADO!';
     btn.classList.add('copied');
     setTimeout(() => {
-      btn.textContent = '📋 COPIAR CUPOM';
+      btn.textContent = '📋 COPIAR CÓDIGO';
       btn.classList.remove('copied');
     }, 2500);
   }).catch(() => {
@@ -1260,7 +1216,7 @@ function copyCoupon() {
     const btn = document.getElementById('copyBtn');
     btn.textContent = '✅ COPIADO!';
     btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = '📋 COPIAR CUPOM'; btn.classList.remove('copied'); }, 2500);
+    setTimeout(() => { btn.textContent = '📋 COPIAR CÓDIGO'; btn.classList.remove('copied'); }, 2500);
   });
 }
 
@@ -1331,6 +1287,85 @@ function doAdminLogin() {
 // ══════════════════════════════════════════════
 // ADMIN PANEL
 // ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// PRIZE EDITOR (admin)
+// ══════════════════════════════════════════════
+let _cfgPendingPrizes = null;
+function cfgGetWorkingPrizes(){
+  if(_cfgPendingPrizes===null) _cfgPendingPrizes=JSON.parse(JSON.stringify(CFG.PRIZES||[]));
+  return _cfgPendingPrizes;
+}
+function rebuildPrizePool(){
+  Object.keys(ALL_PRIZES).forEach(k=>delete ALL_PRIZES[k]);
+  (CFG.ACTIVE_DATES||[]).forEach((key,dayIdx)=>{
+    const pool=[];
+    (CFG.PRIZES||[]).forEach((p,pi)=>{
+      for(let i=1;i<=(p.qty||0);i++)
+        pool.push({id:`${prizeSlug(p.name)}-${key}-${i}`,name:p.name,emoji:p.emoji||'🎁',
+          color:p.color||'#555',fg:p.fg||'#fff',noWin:!!p.noWin,prizeIdx:pi,dateKey:key});
+    });
+    seededShuffle(pool,dayIdx*31337+9001);
+    ALL_PRIZES[key]=pool;
+  });
+}
+function prizesRender(){
+  const el=document.getElementById('prizes-list'); if(!el)return;
+  const prizes=cfgGetWorkingPrizes();
+  if(!prizes.length){el.innerHTML='<p style="color:rgba(255,255,255,.4);font-size:.85rem;margin:0">Nenhum prêmio configurado.</p>';return;}
+  el.innerHTML=prizes.map((p,i)=>`
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap;background:rgba(255,255,255,.04);border-radius:8px;padding:8px 10px;">
+      <input type="text" value="${p.emoji||'🎁'}" maxlength="4" placeholder="🎁"
+        oninput="cfgGetWorkingPrizes()[${i}].emoji=this.value"
+        style="width:42px;text-align:center;padding:6px 4px;border-radius:7px;border:1.5px solid rgba(255,223,0,.3);background:rgba(0,0,0,.4);color:#fff;font-size:1.3rem;">
+      <input type="text" value="${p.name||''}" placeholder="Nome do prêmio"
+        oninput="cfgGetWorkingPrizes()[${i}].name=this.value"
+        style="flex:1;min-width:110px;padding:6px 10px;border-radius:7px;border:1.5px solid rgba(255,223,0,.3);background:rgba(0,0,0,.4);color:#fff;font-size:.9rem;">
+      <input type="number" value="${p.qty||1}" min="1" max="999" placeholder="Qtd/dia"
+        oninput="cfgGetWorkingPrizes()[${i}].qty=parseInt(this.value)||1"
+        style="width:62px;padding:6px;border-radius:7px;border:1.5px solid rgba(255,223,0,.3);background:rgba(0,0,0,.4);color:#fff;font-size:.9rem;text-align:center;" title="Quantidade por dia">
+      <input type="color" value="${p.color||'#555555'}" title="Cor da fatia"
+        oninput="cfgGetWorkingPrizes()[${i}].color=this.value"
+        style="width:34px;height:34px;border:none;border-radius:7px;cursor:pointer;padding:2px;background:none;">
+      ${p.noWin?'<span style="color:rgba(255,255,255,.4);font-size:.72rem;white-space:nowrap">(sem prêmio)</span>':''}
+      <button type="button" onclick="prizeRemove(${i})"
+        style="background:none;border:1px solid rgba(255,80,80,.4);color:rgba(255,100,100,.9);border-radius:7px;padding:5px 10px;cursor:pointer;font-size:.8rem;">✕</button>
+    </div>`).join('');
+}
+window.prizeAdd=function(){
+  cfgGetWorkingPrizes().push({name:'Novo Prêmio',emoji:'🎁',qty:5,color:'#888888',fg:'#fff',noWin:false});
+  prizesRender();
+};
+window.prizeRemove=function(i){cfgGetWorkingPrizes().splice(i,1);prizesRender();};
+window.prizesPublish=async function(){
+  const msg=document.getElementById('prizes-msg'),btn=document.getElementById('prizes-publish-btn');
+  const prizes=cfgGetWorkingPrizes();
+  if(!prizes.length){msg.style.color='#f66';msg.textContent='⚠️ Adicione ao menos um prêmio.';return;}
+  let token=cfgGetToken();
+  if(!token){token=prompt('Cole seu GitHub Personal Access Token (ghp_...):');if(!token)return;cfgSaveGhToken(token);}
+  btn.textContent='⏳ Publicando...';btn.disabled=true;
+  msg.style.color='#fff';msg.textContent='Buscando arquivo...';
+  try{
+    const headers={'Authorization':`token ${token}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'};
+    const getR=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{headers});
+    if(!getR.ok){if(getR.status===401)localStorage.removeItem(LS_GH_TOKEN);throw new Error('Erro GitHub: '+getR.status);}
+    const fd=await getR.json();
+    const dec=new TextDecoder('utf-8').decode(Uint8Array.from(atob(fd.content.replace(/\n/g,'')),c=>c.charCodeAt(0)));
+    msg.textContent='Atualizando prêmios...';
+    const upd=dec.replace(/PRIZES:\s*\[.*?\]\/\/ HEXA_PRIZES/,`PRIZES: ${JSON.stringify(prizes)} // HEXA_PRIZES`);
+    msg.textContent='Enviando...';
+    const enc=new TextEncoder(),bytes=enc.encode(upd);
+    let bin='';bytes.forEach(b=>bin+=String.fromCharCode(b));
+    const now=new Date().toLocaleString('pt-BR',{timeZone:CFG.TIMEZONE});
+    const putR=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{
+      method:'PUT',headers,body:JSON.stringify({message:`Admin: atualiza prêmios (${now})`,content:btoa(bin),sha:fd.sha})});
+    if(!putR.ok)throw new Error('Erro ao salvar: '+putR.status);
+    CFG.PRIZES=JSON.parse(JSON.stringify(prizes));
+    _cfgPendingPrizes=null;
+    rebuildPrizePool();drawWheel(curAngle);prizesRender();renderAdminStats();renderAdminDay(adminCurrentDay);
+    msg.style.color='#0c6';msg.innerHTML='✅ Roleta publicada! Deploy em ~30s.';
+  }catch(e){msg.style.color='#f66';msg.textContent='❌ '+e.message;}
+  btn.textContent='🚀 Publicar Roleta';btn.disabled=false;
+};
 let adminCurrentDay = 0;
 
 async function initAdmin() {
@@ -1338,12 +1373,12 @@ async function initAdmin() {
   document.getElementById('admin-panel').style.display   = 'block';
   document.querySelector('.footer').style.display        = 'none';
   cfgInitUI();
+  rebuildPrizePool();
 
   const tk = todayKey();
   const todayIdx = (CFG.ACTIVE_DATES || []).indexOf(tk);
   adminCurrentDay = todayIdx >= 0 ? todayIdx : 0;
 
-  // Sincroniza com Firebase antes de renderizar
   await Promise.all((CFG.ACTIVE_DATES || []).map(dk => fbSyncToLocal(dk)));
 
   renderAdminStats();
@@ -1359,18 +1394,16 @@ async function initAdmin() {
 }
 
 function renderAdminStats() {
-  const used   = getAdminUsed();
-  const tk     = todayKey();
-  const todayP = ALL_COUPONS[tk] || [];
-  const usedT  = todayP.filter(c => used[c.id || c.code]).length;
-  const totalA = Object.values(ALL_COUPONS).flat().length;
-  const usedA  = Object.values(ALL_COUPONS).flat().filter(c => used[c.id || c.code]).length;
-
-  document.getElementById('statsRow').innerHTML = `
-    <div class="stat-box"><div class="sn">${CFG.DAYS}</div><div class="sl">Dias</div></div>
-    <div class="stat-box"><div class="sn">${todayP.length}</div><div class="sl">Cupons Hoje</div></div>
-    <div class="stat-box"><div class="sn" style="color:#ff8888">${usedT}</div><div class="sl">Usados Hoje</div></div>
-    <div class="stat-box"><div class="sn">${totalA - usedA}</div><div class="sl">Disponíveis Total</div></div>
+  const used=getAdminUsed(), tk=todayKey();
+  const todayP=(ALL_PRIZES[tk]||[]).filter(c=>!c.noWin);
+  const usedT=todayP.filter(c=>used[c.id]).length;
+  const allWin=Object.values(ALL_PRIZES).flat().filter(c=>!c.noWin);
+  const usedAll=allWin.filter(c=>used[c.id]).length;
+  document.getElementById('statsRow').innerHTML=`
+    <div class="stat-box"><div class="sn">${(CFG.ACTIVE_DATES||[]).length}</div><div class="sl">Dias</div></div>
+    <div class="stat-box"><div class="sn">${todayP.length}</div><div class="sl">Prêmios Hoje</div></div>
+    <div class="stat-box"><div class="sn" style="color:#ff8888">${usedT}</div><div class="sl">Entregues Hoje</div></div>
+    <div class="stat-box"><div class="sn">${allWin.length-usedAll}</div><div class="sl">Disponíveis Total</div></div>
   `;
 }
 
@@ -1402,48 +1435,34 @@ window.selectAdminDay = function(d, btn) {
 };
 
 function renderAdminDay(dayIdx) {
-  const dates = CFG.ACTIVE_DATES || [];
-  const key   = dates[dayIdx];
-  if (!key) { document.getElementById('dayContent').innerHTML = ''; return; }
-  const day = parseInt(key.slice(0,2)), mon = parseInt(key.slice(2,4))-1, yr = parseInt(key.slice(4));
-  const date = new Date(yr, mon, day);
-  const pool = ALL_COUPONS[key] || [];
-  const used = getAdminUsed();
-  const tk   = todayKey();
-  const isToday = key === tk;
-
-  const usedCount = pool.filter(c => used[c.id || c.code]).length;
-
-  let html = `<div class="day-card">
-    <div class="day-card-header">
-      <h3>📅 ${date.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
-        ${isToday ? '<span class="today-badge">HOJE</span>' : ''}
-      </h3>
-      <span class="day-usage">${usedCount}/${pool.length} usados</span>
-    </div>`;
-
-  SLOTS.forEach(sl => {
-    const group = pool.filter(c => c.discount === sl.d);
-    if (!group.length) return;
-    html += `<div class="slot-group">
-      <div class="slot-title">${sl.label} de desconto — ${group.length} cupom${group.length>1?'s':''}</div>
-      <div class="code-grid">`;
-    group.forEach(c => {
-      const trackId  = c.id || c.code;
-      const isUsed   = !!used[trackId];
-      const usedInfo = isUsed
-        ? `(${used[trackId].via === 'admin' ? 'Admin' : 'Cliente'} ${new Date(used[trackId].ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})})`
-        : '';
-      html += `<div class="code-item ${isUsed ? 'used' : ''}" id="ci-${trackId}">
-        <span class="ci-code" title="${usedInfo}">${c.code}</span>
-        <button class="mark-btn" onclick="adminToggle('${trackId}','${key}')">${isUsed ? '↩ Reverter' : 'Marcar Usado'}</button>
+  const dates=CFG.ACTIVE_DATES||[], key=dates[dayIdx];
+  if (!key){document.getElementById('dayContent').innerHTML='';return;}
+  const day=parseInt(key.slice(0,2)),mon=parseInt(key.slice(2,4))-1,yr=parseInt(key.slice(4));
+  const date=new Date(yr,mon,day), pool=ALL_PRIZES[key]||[], used=getAdminUsed();
+  const isToday=key===todayKey(), winPool=pool.filter(c=>!c.noWin);
+  const usedCnt=winPool.filter(c=>used[c.id]).length;
+  let html=`<div class="day-card"><div class="day-card-header">
+    <h3>📅 ${date.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
+      ${isToday?'<span class="today-badge">HOJE</span>':''}</h3>
+    <span class="day-usage">${usedCnt}/${winPool.length} entregues</span>
+  </div>`;
+  (CFG.PRIZES||[]).filter(p=>!p.noWin).forEach(p=>{
+    const group=pool.filter(c=>c.name===p.name);
+    if(!group.length)return;
+    const gUsed=group.filter(c=>used[c.id]).length;
+    html+=`<div class="slot-group"><div class="slot-title">${p.emoji||'🎁'} ${p.name} — ${gUsed}/${group.length} entregue${group.length>1?'s':''}</div><div class="code-grid">`;
+    group.forEach(c=>{
+      const isUsed=!!used[c.id], rec=used[c.id]||{};
+      const info=isUsed?`(${rec.via==='admin'?'Admin':'Cliente'} ${new Date(rec.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})})`:'';
+      html+=`<div class="code-item ${isUsed?'used':''}" id="ci-${c.id}">
+        <span class="ci-code" title="${info}">${c.id}</span>
+        <button class="mark-btn" onclick="adminToggle('${c.id}','${key}')">${isUsed?'↩ Reverter':'Marcar Entregue'}</button>
       </div>`;
     });
-    html += '</div></div>';
+    html+='</div></div>';
   });
-
-  html += '</div>';
-  document.getElementById('dayContent').innerHTML = html;
+  html+='</div>';
+  document.getElementById('dayContent').innerHTML=html;
 }
 
 window.adminToggle = function(id, dateKey) {
@@ -1454,26 +1473,19 @@ window.adminToggle = function(id, dateKey) {
 
 // ── CSV export ────────────────────────────────
 window.exportCSV = function() {
-  const key = (CFG.ACTIVE_DATES || [])[adminCurrentDay];
-  if (!key) return;
-  const pool = ALL_COUPONS[key] || [];
-  const used = getAdminUsed();
-
-  let csv = 'Codigo,Desconto,Status\n';
-  pool.forEach(c => {
-    const trackId = c.id || c.code;
-    const status  = used[trackId]
-      ? `Usado (${used[trackId].via})`
-      : 'Disponivel';
-    csv += `${c.code},${c.discount}%,${status}\n`;
+  const key=(CFG.ACTIVE_DATES||[])[adminCurrentDay];
+  if(!key)return;
+  const pool=(ALL_PRIZES[key]||[]).filter(c=>!c.noWin), used=getAdminUsed();
+  let csv='Codigo,Premio,Status,Via,Hora
+';
+  pool.forEach(c=>{
+    const rec=used[c.id], hora=rec?new Date(rec.ts).toLocaleString('pt-BR'):'';
+    csv+=`${c.id},"${c.name}",${rec?'Entregue':'Disponivel'},${rec?rec.via:''},"${hora}"
+`;
   });
-
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `cupons_${key}.csv`;
-  a.click();
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=`premios_${key}.csv`; a.click();
   URL.revokeObjectURL(url);
 };
 
