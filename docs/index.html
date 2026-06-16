@@ -1053,26 +1053,24 @@ function drawWheel(rot) {
     ctx.fillStyle = p.color||'#555'; ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth=1.5; ctx.stroke();
     if (arcPx > 18) {
-      const mid=a+arc/2, tr=R*0.65;
+      const mid=a+arc/2, tr=R*0.62;
       ctx.save();
+      // Clipar na fatia para texto não vazar
+      ctx.beginPath(); ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,R,a,a+arc); ctx.closePath(); ctx.clip();
+      // Texto SEMPRE horizontal — legível onde a seta parar
       ctx.translate(cx+Math.cos(mid)*tr, cy+Math.sin(mid)*tr);
-      // Topo das letras aponta para o centro (seta): rot = mid + π/2
-      // Para fatias na metade inferior, inverte para não ficar de cabeça pra baixo
-      const normMid = ((mid % (Math.PI*2)) + Math.PI*2) % (Math.PI*2);
-      const flipped = normMid > Math.PI && normMid < Math.PI*2;
-      ctx.rotate(mid - Math.PI/2 + (flipped ? Math.PI : 0));
       ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.shadowBlur=0;
       ctx.fillStyle=p.fg||'#fff';
-      if (arcPx>90) {
-        const esz=arcPx>140?20:15;
-        ctx.font=`${esz}px serif`; ctx.fillText(p.emoji||'🎁',0,flipped?esz*.55:-esz*.55);
-        ctx.font=`bold ${arcPx>140?12:10}px Arial`;
-        const nm=(p.name||'').length>11?(p.name).slice(0,10)+'…':(p.name||'');
-        ctx.fillText(nm,0,flipped?-esz*.75:esz*.75);
+      if (arcPx>80) {
+        const esz=arcPx>160?19:15;
+        ctx.font=`${esz}px serif`; ctx.fillText(p.emoji||'🎁',0,-esz*.65);
+        ctx.font=`bold ${arcPx>160?13:10}px Arial`;
+        const nm=(p.name||'').length>10?(p.name).slice(0,9)+'…':(p.name||'');
+        ctx.fillText(nm,0,esz*.6);
       } else if (arcPx>40) {
-        const esz=arcPx>60?17:13;
-        ctx.font=`${esz}px serif`; ctx.fillText(p.emoji||'🎁',0,0);
+        ctx.font=`${arcPx>60?17:13}px serif`; ctx.fillText(p.emoji||'🎁',0,0);
       } else { ctx.fillRect(-1.5,-1.5,3,3); }
       ctx.restore();
     }
