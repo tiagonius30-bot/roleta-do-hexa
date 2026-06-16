@@ -1055,14 +1055,11 @@ function drawWheel(rot) {
     if (arcPx > 18) {
       const mid=a+arc/2, tr=R*0.62;
       ctx.save();
-      // Clipar na fatia para texto não vazar
       ctx.beginPath(); ctx.moveTo(cx,cy);
       ctx.arc(cx,cy,R,a,a+arc); ctx.closePath(); ctx.clip();
-      // Texto SEMPRE horizontal — legível onde a seta parar
       ctx.translate(cx+Math.cos(mid)*tr, cy+Math.sin(mid)*tr);
       ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.shadowBlur=0;
-      ctx.fillStyle=p.fg||'#fff';
+      ctx.shadowBlur=0; ctx.fillStyle=p.fg||'#fff';
       if (arcPx>80) {
         const esz=arcPx>160?19:15;
         ctx.font=`${esz}px serif`; ctx.fillText(p.emoji||'🎁',0,-esz*.65);
@@ -1542,4 +1539,44 @@ window.addEventListener('load', async () => {
     let nextMsg = '';
     if (nextDate) {
       const nd = new Date(nextDate.y, nextDate.m, nextDate.d);
-      const label = nd.toLocaleDateString('pt-BR'
+      const label = nd.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
+      nextMsg = `<p style="margin:16px auto 0;max-width:320px;color:var(--yellow);font-size:1rem;font-weight:700">
+        📅 Próxima promoção: ${label} às ${hourStart}h
+      </p>`;
+    }
+
+    let msg = '';
+    if (!isPromoDay) {
+      msg = 'Fique ligado nas nossas promoções!';
+    } else if (tooEarly) {
+      msg = `A roleta abre às ${hourStart}h (horário de Sinop). Volte mais tarde!`;
+    } else {
+      msg = `A roleta encerrou às ${hourEnd}h. Até a próxima!`;
+    }
+
+    const title = tooEarly ? '⏳ Ainda não abriu!' : '⏰ Encerrado!';
+
+    document.querySelector('.wheel-section').innerHTML = `
+      <div style="text-align:center;padding:40px 20px;max-width:420px;margin:0 auto;">
+        <div style="font-size:3.5rem;margin-bottom:12px">${tooEarly ? '⏳' : '⏰'}</div>
+        <h2 style="color:#FFDF00;margin:0 0 12px;font-size:1.9rem;font-weight:900;letter-spacing:2px">${title}</h2>
+        <p style="color:rgba(255,255,255,.88);font-size:1.05rem;line-height:1.6;max-width:320px;margin:0 auto">${msg}</p>
+        ${nextMsg}
+      </div>
+    `;
+    return;
+  }
+
+  // ── Init fingerprint (async, melhora unicidade) ──
+  await initFingerprint();
+
+  // ── Checa se já girou hoje (logo ao abrir, sem precisar clicar) ──
+  const savedOnLoad = getSavedCoupon();
+  if (savedOnLoad) { showAlreadySpun(savedOnLoad); }
+
+  // ── Wheel already drawn at script parse time; redraw after fp ready ──
+  drawWheel(curAngle);
+});
+</script>
+</body>
+</html>
