@@ -881,7 +881,7 @@ async function cfgPublish() {
     let html = new TextDecoder('utf-8').decode(_bytes);
     html = html.replace(/ACTIVE_DATES:\s*\[.*?\]/, `ACTIVE_DATES:   ${JSON.stringify(dates)}`);
     const pendP=_cfgPendingPrizes||CFG.PRIZES||[];
-    html=html.replace(/PRIZES:\s*\[.*?\]\/\/ HEXA_PRIZES/,`PRIZES: ${JSON.stringify(pendP)} // HEXA_PRIZES`);
+    html=html.replace(/PRIZES:\s*\[.*?\],\s*\/\/ HEXA_PRIZES/,`PRIZES: ${JSON.stringify(pendP)}, // HEXA_PRIZES`);
     html = html.replace(/(START_HOUR:\s*)\d+/, `$1${sh}`);
     html = html.replace(/(END_HOUR:\s*)\d+/,   `$1${eh}`);
 
@@ -1351,7 +1351,7 @@ window.prizesPublish=async function(){
     const fd=await getR.json();
     const dec=new TextDecoder('utf-8').decode(Uint8Array.from(atob(fd.content.replace(/\n/g,'')),c=>c.charCodeAt(0)));
     msg.textContent='Atualizando prêmios...';
-    const upd=dec.replace(/PRIZES:\s*\[.*?\]\/\/ HEXA_PRIZES/,`PRIZES: ${JSON.stringify(prizes)} // HEXA_PRIZES`);
+    const upd=dec.replace(/PRIZES:\s*\[.*?\],\s*\/\/ HEXA_PRIZES/,`PRIZES: ${JSON.stringify(prizes)}, // HEXA_PRIZES`);
     msg.textContent='Enviando...';
     const enc=new TextEncoder(),bytes=enc.encode(upd);
     let bin='';bytes.forEach(b=>bin+=String.fromCharCode(b));
