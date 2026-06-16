@@ -567,6 +567,26 @@
         🚀 PUBLICAR AGORA
       </button>
       <div id="cfg-msg" style="text-align:center;margin-top:4px;font-size:.85rem;color:#0c6;min-height:40px;line-height:1.5;"></div>
+
+      <hr style="border:none;border-top:1px solid rgba(255,223,0,.15);margin:16px 0 14px">
+      <p style="color:rgba(255,255,255,.65);font-size:.82rem;margin:0 0 6px">
+        <strong style="color:#FF9500">🔥 Rastreamento automático (Firebase):</strong>
+        quando o cliente girar, o cupom aparece aqui automaticamente.
+      </p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <input id="firebase-url-input" type="url"
+               placeholder="https://seu-projeto-default-rtdb.firebaseio.com"
+               style="flex:1;min-width:220px;padding:8px 10px;border-radius:8px;border:1.5px solid rgba(255,150,0,.4);background:rgba(0,0,0,.4);color:#fff;font-size:.85rem;">
+        <button onclick="fbSaveUrl()"
+                style="padding:8px 16px;background:rgba(255,100,0,.2);border:1.5px solid #FF9500;border-radius:8px;color:#FF9500;font-weight:700;cursor:pointer;font-size:.85rem;white-space:nowrap;">
+          💾 Salvar URL
+        </button>
+      </div>
+      <p id="fb-url-status" style="font-size:.78rem;color:rgba(255,255,255,.45);margin:6px 0 0"></p>
+      <p style="font-size:.75rem;color:rgba(255,255,255,.35);margin:4px 0 0">
+        Crie grátis em <a href="https://console.firebase.google.com" target="_blank" style="color:#FF9500">console.firebase.google.com</a>
+        → Realtime Database → Modo de teste → copie a URL
+      </p>
     </div>
   </details>
 
@@ -925,6 +945,50 @@ function cfgInitUI() {
   document.getElementById('cfg-start-hour').value = CFG.START_HOUR;
   document.getElementById('cfg-end-hour').value   = CFG.END_HOUR;
   cfgRenderDates();
+  const fbUrl = fbGetUrl();
+  if (fbUrl) {
+    document.getElementById('firebase-url-input').value = fbUrl;
+    const st = document.getElementById('fb-url-status');
+    st.style.color = '#0f0'; st.textContent = '✅ Firebase ativo — rastreamento automático habilitado.';
+  }
+}
+
+// ══════════════════════════════════════════════
+// FIREBASE — rastreamento automático cross-device
+// REST API do Realtime Database (sem SDK, sem auth em modo teste)
+// ══════════════════════════════════════════════
+const LS_FB_URL = 'hexa_firebase_db';
+function fbGetUrl() { return (localStorage.getItem(LS_FB_URL) || '').replace(/\/$/, ''); }
+
+window.fbSaveUrl = function() {
+  const v  = (document.getElementById('firebase-url-input').value || '').trim().replace(/\/$/, '');
+  const st = document.getElementById('fb-url-status');
+  if (!v || !v.startsWith('https://')) { st.style.color='#f66'; st.textContent='⚠️ URL inválida.'; return; }
+  localStorage.setItem(LS_FB_URL, v);
+  document.getElementById('firebase-url-input').value = v;
+  st.style.color = '#0f0'; st.textContent = '✅ URL salva! Rastreamento ativo.';
+};
+
+async function fbRead(path) {
+  const base = fbGetUrl(); if (!base) return null;
+  try { const r = await fetch(`${base}/${path}.json`); return r.ok ? await r.json() : null; }
+  catch { return null; }
+}
+async function fbWrite(path, value) {
+  const base = fbGetUrl(); if (!base) return;
+  try { await fetch(`${base}/${path}.json`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(value) }); }
+  catch { /* silent */ }
+}
+async function fbDelete(path) {
+  const base = fbGetUrl(); if (!base) return;
+  try { await fetch(`${base}/${path}.json`, { method: 'DELETE' }); } catch { /* silent */ }
+}
+async function fbSyncToLocal(dateKey) {
+  const data = await fbRead(`used/${dateKey}`);
+  if (!data || typeof data !== 'object') return;
+  const local = getAdminUsed();
+  Object.assign(local, data);
+  localStorage.setItem(LS_USED, JSON.stringify(local));
 }
 
 // ── Storage helpers ─────────────────────────
@@ -945,21 +1009,31 @@ function getSavedCoupon() {
 
 function saveCoupon(c) {
   localStorage.setItem(fpDayKey(), JSON.stringify(c));
-  // Usa c.id (único por slot) como chave — evita marcar todos do mesmo código
   const trackId = c.id || c.code;
-  const used = getAdminUsed();
-  if (!used[trackId]) used[trackId] = { ts: Date.now(), via: 'customer', code: c.code };
-  localStorage.setItem(LS_USED, JSON.stringify(used));
+  const record  = { ts: Date.now(), via: 'customer', code: c.code };
+  const used    = getAdminUsed();
+  if (!used[trackId]) {
+    used[trackId] = record;
+    localStorage.setItem(LS_USED, JSON.stringify(used));
+  }
+  // Firebase: marca automaticamente no admin de qualquer dispositivo
+  fbWrite(`used/${c.dateKey || todayKey()}/${trackId}`, record);
 }
 
 function getAdminUsed() {
   try { return JSON.parse(localStorage.getItem(LS_USED) || '{}'); } catch { return {}; }
 }
 
-function toggleAdminUsed(id) {
+function toggleAdminUsed(id, dateKey) {
   const used = getAdminUsed();
-  if (used[id]) { delete used[id]; }
-  else          { used[id] = { ts: Date.now(), via: 'admin' }; }
+  const dk   = dateKey || todayKey();
+  if (used[id]) {
+    delete used[id];
+    fbDelete(`used/${dk}/${id}`);
+  } else {
+    used[id] = { ts: Date.now(), via: 'admin' };
+    fbWrite(`used/${dk}/${id}`, used[id]);
+  }
   localStorage.setItem(LS_USED, JSON.stringify(used));
 }
 
@@ -1259,19 +1333,29 @@ function doAdminLogin() {
 // ══════════════════════════════════════════════
 let adminCurrentDay = 0;
 
-function initAdmin() {
+async function initAdmin() {
   document.getElementById('customer-view').style.display = 'none';
   document.getElementById('admin-panel').style.display   = 'block';
   document.querySelector('.footer').style.display        = 'none';
   cfgInitUI();
-  renderAdminStats();
-  buildAdminTabs();
 
-  // Default to today's tab if found, otherwise first tab
   const tk = todayKey();
   const todayIdx = (CFG.ACTIVE_DATES || []).indexOf(tk);
   adminCurrentDay = todayIdx >= 0 ? todayIdx : 0;
+
+  // Sincroniza com Firebase antes de renderizar
+  await Promise.all((CFG.ACTIVE_DATES || []).map(dk => fbSyncToLocal(dk)));
+
+  renderAdminStats();
+  buildAdminTabs();
   renderAdminDay(adminCurrentDay);
+
+  // Auto-refresh a cada 30s enquanto o admin estiver aberto
+  setInterval(async () => {
+    await Promise.all((CFG.ACTIVE_DATES || []).map(dk => fbSyncToLocal(dk)));
+    renderAdminStats();
+    renderAdminDay(adminCurrentDay);
+  }, 30000);
 }
 
 function renderAdminStats() {
@@ -1352,7 +1436,7 @@ function renderAdminDay(dayIdx) {
         : '';
       html += `<div class="code-item ${isUsed ? 'used' : ''}" id="ci-${trackId}">
         <span class="ci-code" title="${usedInfo}">${c.code}</span>
-        <button class="mark-btn" onclick="adminToggle('${trackId}')">${isUsed ? '↩ Reverter' : 'Marcar Usado'}</button>
+        <button class="mark-btn" onclick="adminToggle('${trackId}','${key}')">${isUsed ? '↩ Reverter' : 'Marcar Usado'}</button>
       </div>`;
     });
     html += '</div></div>';
@@ -1362,8 +1446,8 @@ function renderAdminDay(dayIdx) {
   document.getElementById('dayContent').innerHTML = html;
 }
 
-window.adminToggle = function(id) {
-  toggleAdminUsed(id);
+window.adminToggle = function(id, dateKey) {
+  toggleAdminUsed(id, dateKey);
   renderAdminStats();
   renderAdminDay(adminCurrentDay);
 };
