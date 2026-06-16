@@ -1476,12 +1476,10 @@ window.exportCSV = function() {
   const key=(CFG.ACTIVE_DATES||[])[adminCurrentDay];
   if(!key)return;
   const pool=(ALL_PRIZES[key]||[]).filter(c=>!c.noWin), used=getAdminUsed();
-  let csv='Codigo,Premio,Status,Via,Hora
-';
+  let csv='Codigo,Premio,Status,Via,Hora\n';
   pool.forEach(c=>{
     const rec=used[c.id], hora=rec?new Date(rec.ts).toLocaleString('pt-BR'):'';
-    csv+=`${c.id},"${c.name}",${rec?'Entregue':'Disponivel'},${rec?rec.via:''},"${hora}"
-`;
+    csv+=`${c.id},"${c.name}",${rec?"Entregue":"Disponivel"},${rec?rec.via:""},"${hora}"\n`;
   });
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
