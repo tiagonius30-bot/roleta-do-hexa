@@ -541,7 +541,7 @@
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
         <input id="cfg-new-date" type="date"
                style="flex:1;min-width:140px;padding:8px 10px;border-radius:8px;border:1.5px solid rgba(255,223,0,.4);background:rgba(0,0,0,.4);color:#fff;font-size:.9rem;">
-        <button onclick="cfgAddDate()"
+        <button type="button" onclick="cfgAddDate()"
                 style="padding:8px 16px;background:var(--green-dark);border:none;border-radius:8px;color:var(--yellow);font-weight:700;cursor:pointer;font-size:.9rem;">
           ➕ Adicionar
         </button>
@@ -829,12 +829,12 @@ function cfgRenderDates() {
     const label = key.replace(/(\d{2})(\d{2})(\d{4})/, '$1/$2/$3');
     return `<span style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,223,0,.12);border:1px solid rgba(255,223,0,.4);border-radius:20px;padding:4px 12px;color:var(--yellow);font-size:.84rem;">
       📅 ${label}
-      <button onclick="cfgRemoveDate('${key}')" style="background:none;border:none;color:rgba(255,100,100,.8);cursor:pointer;font-size:1rem;line-height:1;padding:0;">✕</button>
+      <button type="button" onclick="event.stopPropagation();cfgRemoveDate('${key}')" style="background:none;border:none;color:rgba(255,100,100,.8);cursor:pointer;font-size:1rem;line-height:1;padding:0;">✕</button>
     </span>`;
   }).join('');
 }
 
-function cfgAddDate() {
+window.cfgAddDate = function() {
   const input = document.getElementById('cfg-new-date');
   if (!input.value) return;
   const [y, m, d] = input.value.split('-');
@@ -843,12 +843,12 @@ function cfgAddDate() {
   if (!dates.includes(key)) dates.push(key);
   input.value = '';
   cfgRenderDates();
-}
+};
 
-function cfgRemoveDate(key) {
+window.cfgRemoveDate = function(key) {
   _cfgPendingDates = cfgGetWorkingDates().filter(k => k !== key);
   cfgRenderDates();
-}
+};
 
 const GH_USER = 'tiagonius30-bot';
 const GH_REPO = 'roleta-do-hexa';
