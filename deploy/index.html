@@ -108,6 +108,21 @@
       box-shadow: 0 0 45px rgba(255,223,0,.28), 0 12px 45px rgba(0,0,0,.55);
     }
 
+    /* ── SLOT MACHINE ────────────────────────── */
+    #slotMachine { display:none; }
+    .slot-reels { display:flex; gap:14px; justify-content:center; margin:10px 0; }
+    .slot-reel {
+      width:108px; height:128px; border-radius:16px;
+      border:3px solid #FFDF00; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:6px;
+      transition:background .12s;
+      box-shadow:0 6px 24px rgba(0,0,0,.5);
+    }
+    .slot-reel .sl-emoji { font-size:2.6rem; line-height:1; }
+    .slot-reel .sl-name  { font-size:.72rem; font-weight:700; text-align:center; padding:0 6px; }
+    .slot-reel.slot-win  { animation:slotpulse .35s ease-in-out 4; border-color:#0f6; }
+    @keyframes slotpulse  { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+
     /* ── SPIN BUTTON ─────────────────────────── */
     .spin-btn {
       background: linear-gradient(135deg, var(--yellow) 0%, var(--gold) 100%);
@@ -462,7 +477,16 @@
       <canvas id="wheelCanvas"></canvas>
     </div>
 
-    <button class="spin-btn" id="spinBtn" onclick="spinWheel()">
+    <!-- ── Caça-Níquel ─────────────────────── -->
+    <div id="slotMachine">
+      <div class="slot-reels">
+        <div class="slot-reel" id="slotReel0"><div class="sl-emoji">🎁</div><div class="sl-name" style="color:#fff">–</div></div>
+        <div class="slot-reel" id="slotReel1"><div class="sl-emoji">🎁</div><div class="sl-name" style="color:#fff">–</div></div>
+        <div class="slot-reel" id="slotReel2"><div class="sl-emoji">🎁</div><div class="sl-name" style="color:#fff">–</div></div>
+      </div>
+    </div>
+
+    <button class="spin-btn" id="spinBtn" onclick="handleSpin()">
       🎰 GIRAR ROLETA!
     </button>
 
@@ -591,6 +615,29 @@
     </div>
   </details>
 
+  <!-- ── Modo de Jogo ── -->
+  <details style="margin-bottom:18px;border:1.5px solid rgba(255,223,0,.5);border-radius:10px;overflow:hidden;">
+    <summary style="padding:12px 16px;background:rgba(0,0,0,.45);cursor:pointer;color:var(--yellow);font-weight:700;font-size:.95rem;list-style:none;display:flex;align-items:center;gap:8px;">
+      🎮 Modo de Jogo
+    </summary>
+    <div style="padding:16px;background:rgba(0,0,0,.25);">
+      <p style="color:rgba(255,255,255,.65);font-size:.82rem;margin:0 0 12px">Escolha como o cliente vai jorar. Clique em <strong style="color:var(--yellow)">Publicar</strong> para salvar.</p>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:8px;color:#fff;cursor:pointer;font-size:.95rem;">
+          <input type="radio" name="gameMode" id="modeRoulette" value="roulette" style="accent-color:var(--yellow);width:18px;height:18px;">
+          🎡 Roleta
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;color:#fff;cursor:pointer;font-size:.95rem;">
+          <input type="radio" name="gameMode" id="modeSlots" value="slots" style="accent-color:var(--yellow);width:18px;height:18px;">
+          🎰 Caça-níquel
+        </label>
+      </div>
+      <button type="button" onclick="publishMode()"
+        style="margin-top:12px;padding:8px 20px;background:linear-gradient(135deg,rgba(0,180,100,.3),rgba(0,120,60,.3));border:2px solid #0c6;border-radius:8px;color:#0f0;font-weight:800;cursor:pointer;font-size:.9rem;">🚀 Publicar modo</button>
+      <div id="mode-msg" style="margin-top:8px;font-size:.85rem;min-height:20px;color:#0c6;"></div>
+    </div>
+  </details>
+
   <!-- ── Editar Roleta ── -->
   <details id="prizes-section" style="margin-bottom:18px;border:1.5px solid rgba(255,223,0,.5);border-radius:10px;overflow:hidden;">
     <summary style="padding:12px 16px;background:rgba(0,0,0,.45);cursor:pointer;color:var(--yellow);font-weight:700;font-size:.95rem;list-style:none;display:flex;align-items:center;gap:8px;">
@@ -639,6 +686,7 @@ const CFG = {
   ADMIN_USER:     'costaneiras',
   ADMIN_PASSWORD: 'HEXAADMIN',
   ACTIVE_DATES:   ["16062026"],   // Datas ativas — gerenciado pelo painel admin
+  GAME_MODE: 'roulette', // HEXA_MODE
   PRIZES: [{"name":"Refrigerante","emoji":"🥤","qty":10,"color":"#FF6B6B","fg":"#fff","noWin":false},{"name":"Entrega Grátis","emoji":"🛵","qty":5,"color":"#4ECDC4","fg":"#003d15","noWin":false},{"name":"Pizza Grande","emoji":"🍕","qty":2,"color":"#FFE66D","fg":"#004d1a","noWin":false},{"name":"Pizza Doce","emoji":"🍰","qty":3,"color":"#FF9FF3","fg":"#003d15","noWin":false},{"name":"Não foi desta vez","emoji":"😅","qty":5,"color":"#333333","fg":"rgba(255,255,255,.5)","noWin":true}], // HEXA_PRIZES
 };
 
@@ -1023,7 +1071,7 @@ const ctx    = canvas.getContext('2d');
 
 (function sizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
-  const sz  = Math.min(460, window.innerWidth - 20);
+  const sz  = Math.min(390, window.innerWidth - 40);
   canvas.style.width  = sz + 'px';
   canvas.style.height = sz + 'px';
   canvas.width  = Math.round(sz * dpr);
@@ -1053,21 +1101,24 @@ function drawWheel(rot) {
     ctx.fillStyle = p.color||'#555'; ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth=1.5; ctx.stroke();
     if (arcPx > 18) {
-      const mid=a+arc/2, tr=R*0.62;
+      const mid=a+arc/2, tr=R*0.67;
       ctx.save();
-      ctx.beginPath(); ctx.moveTo(cx,cy);
-      ctx.arc(cx,cy,R,a,a+arc); ctx.closePath(); ctx.clip();
       ctx.translate(cx+Math.cos(mid)*tr, cy+Math.sin(mid)*tr);
+      ctx.rotate(mid+Math.PI/2);
       ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.shadowBlur=0; ctx.fillStyle=p.fg||'#fff';
-      if (arcPx>80) {
-        const esz=arcPx>160?19:15;
-        ctx.font=`${esz}px serif`; ctx.fillText(p.emoji||'🎁',0,-esz*.65);
-        ctx.font=`bold ${arcPx>160?13:10}px Arial`;
-        const nm=(p.name||'').length>10?(p.name).slice(0,9)+'…':(p.name||'');
-        ctx.fillText(nm,0,esz*.6);
+      ctx.shadowBlur=0;
+      ctx.fillStyle=p.fg||'#fff';
+      if (arcPx>90) {
+        const esz=arcPx>140?22:17;
+        ctx.font=`${esz}px serif`; ctx.fillText(p.emoji||'🎁',0,-esz*.6);
+        const fsz=arcPx>140?13:10;
+        ctx.font=`bold ${fsz}px Arial`;
+        ctx.strokeStyle='rgba(0,0,0,.7)'; ctx.lineWidth=3; ctx.lineJoin='round';
+        const nm=(p.name||'').length>11?(p.name).slice(0,10)+'…':(p.name||'');
+        ctx.strokeText(nm,0,esz*.75); ctx.fillText(nm,0,esz*.75);
       } else if (arcPx>40) {
-        ctx.font=`${arcPx>60?17:13}px serif`; ctx.fillText(p.emoji||'🎁',0,0);
+        const esz=arcPx>60?18:14;
+        ctx.font=`${esz}px serif`; ctx.fillText(p.emoji||'🎁',0,0);
       } else { ctx.fillRect(-1.5,-1.5,3,3); }
       ctx.restore();
     }
@@ -1086,6 +1137,141 @@ function drawWheel(rot) {
 }
 
 drawWheel(curAngle);
+
+// ══════════════════════════════════════════════
+// SLOT MACHINE
+// ══════════════════════════════════════════════
+function initGameMode() {
+  // Sincroniza radio do admin com CFG
+  const r = document.getElementById(CFG.GAME_MODE==='slots'?'modeSlots':'modeRoulette');
+  if (r) r.checked = true;
+  if (CFG.GAME_MODE === 'slots') {
+    document.querySelector('.wheel-wrapper').style.display = 'none';
+    document.getElementById('slotMachine').style.display   = 'block';
+    document.getElementById('spinBtn').innerHTML = '🎰 &nbsp;GIRAR!';
+    initSlotDisplay();
+  }
+}
+initGameMode();
+
+function initSlotDisplay() {
+  const p = (CFG.PRIZES||[]).find(x=>!x.noWin) || CFG.PRIZES[0];
+  if (p) ['slotReel0','slotReel1','slotReel2'].forEach(id=>updateReel(document.getElementById(id),p));
+}
+
+function updateReel(el, prize) {
+  if (!el || !prize) return;
+  el.style.background = prize.color||'#555';
+  el.querySelector('.sl-emoji').textContent = prize.emoji||'🎁';
+  const nm = el.querySelector('.sl-name');
+  nm.textContent  = (prize.name||'').slice(0,12);
+  nm.style.color  = prize.fg||'#fff';
+}
+
+function handleSpin() {
+  if (CFG.GAME_MODE==='slots') spinSlots(); else spinWheel();
+}
+
+let slotSpinning = false;
+
+function spinSlots() {
+  if (slotSpinning) return;
+  const saved = getSavedCoupon();
+  if (saved) { showAlreadySpun(saved); return; }
+  const pool = ALL_PRIZES[todayKey()];
+  if (!pool) { alert('Promoção não ativa hoje!'); return; }
+  const adminUsed  = getAdminUsed();
+  const available  = pool.filter(c=>!adminUsed[c.id]);
+  if (!available.length) { alert('Prêmios do dia esgotados!'); return; }
+
+  const idx    = deterministicIndex(available);
+  const winner = available[idx];
+  const isWin  = !winner.noWin;
+  const winP   = (CFG.PRIZES||[])[winner.prizeIdx] || CFG.PRIZES[0];
+
+  let r0, r1, r2;
+  if (isWin) {
+    r0 = r1 = r2 = winP;
+  } else {
+    const real = (CFG.PRIZES||[]).filter(p=>!p.noWin);
+    r0 = real[0]||winP; r1 = real[1]||real[0]||winP; r2 = real[2]||real[0]||winP;
+    if (r0.name===r1.name && r1.name===r2.name && real.length>1)
+      r2 = real[(real.indexOf(r2)+1)%real.length];
+  }
+
+  const items = [];
+  (CFG.PRIZES||[]).forEach(p=>{ for(let i=0;i<Math.max(1,p.qty||1);i++) items.push(p); });
+
+  slotSpinning = true;
+  document.getElementById('spinBtn').disabled = true;
+
+  let done = 0;
+  function onStop() {
+    if (++done < 3) return;
+    slotSpinning = false;
+    document.getElementById('spinBtn').disabled = false;
+    savePrize(winner);
+    if (isWin) {
+      ['slotReel0','slotReel1','slotReel2'].forEach(id=>document.getElementById(id).classList.add('slot-win'));
+      setTimeout(()=>showResult(winner), 700);
+    } else {
+      showSlotQuase();
+    }
+  }
+  animReel(document.getElementById('slotReel0'), items, r0, 2200, onStop);
+  animReel(document.getElementById('slotReel1'), items, r1, 3500, onStop);
+  animReel(document.getElementById('slotReel2'), items, r2, 4800, onStop);
+}
+
+function animReel(el, items, target, durationMs, cb) {
+  el.classList.remove('slot-win');
+  let i=0, speed=60;
+  const stopAt = Date.now()+durationMs;
+  function tick() {
+    updateReel(el, items[i++%items.length]);
+    const left = stopAt - Date.now();
+    if (left<=0) { updateReel(el,target); if(cb) cb(); return; }
+    speed = left<400?160 : left<800?110 : 60;
+    setTimeout(tick, speed);
+  }
+  tick();
+}
+
+function showSlotQuase() {
+  document.getElementById('rEmoji').textContent      = '🎰';
+  document.getElementById('rValue').textContent      = 'Quase lá!';
+  document.getElementById('rParabens').textContent   = 'Não foi dessa vez... 😅';
+  document.getElementById('rSub').textContent        = 'Tente novamente amanhã!';
+  document.getElementById('couponBox').style.display = 'none';
+  document.getElementById('claimBtn').style.display  = 'none';
+  document.getElementById('rNote').style.display     = 'none';
+  const tk=todayKey(), dl=tk.slice(0,2)+'/'+tk.slice(2,4)+'/'+tk.slice(4);
+  document.getElementById('rValid').textContent=`Válido hoje ${dl} · das ${CFG.START_HOUR}h às ${CFG.END_HOUR}h`;
+  document.getElementById('resultModal').classList.add('show');
+}
+
+async function publishMode() {
+  const msg = document.getElementById('mode-msg');
+  const gm  = document.querySelector('input[name="gameMode"]:checked')?.value||'roulette';
+  let token = cfgGetToken();
+  if (!token) { token=prompt('Cole seu GitHub Token:'); if(!token) return; cfgSaveGhToken(token); }
+  msg.textContent='Publicando...';
+  try {
+    const headers={'Authorization':`token ${token}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'};
+    const getR=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{headers});
+    const fd=await getR.json();
+    const dec=new TextDecoder('utf-8').decode(Uint8Array.from(atob(fd.content.replace(/\n/g,'')),c=>c.charCodeAt(0)));
+    const upd=dec.replace(/GAME_MODE:\s*'[^']*',\s*\/\/ HEXA_MODE/,`GAME_MODE: '${gm}', // HEXA_MODE`);
+    const enc=new TextEncoder(),bytes=enc.encode(upd);let bin='';bytes.forEach(b=>bin+=String.fromCharCode(b));
+    const putR=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{
+      method:'PUT',headers,body:JSON.stringify({message:`Admin: modo ${gm}`,content:btoa(bin),sha:fd.sha})});
+    if(!putR.ok) throw new Error('Erro: '+putR.status);
+    CFG.GAME_MODE=gm;
+    msg.style.color='#0c6'; msg.textContent='✅ Modo publicado! Deploy em ~30s.';
+  } catch(e){ msg.style.color='#f66'; msg.textContent='❌ '+e.message; }
+}
+// ══ FIM SLOT MACHINE ══════════════════════════════════════════
+
 
 // ══════════════════════════════════════════════
 // DETERMINISTIC WINNER SELECTION
