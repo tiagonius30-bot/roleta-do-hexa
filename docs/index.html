@@ -109,19 +109,52 @@
     }
 
     /* ── SLOT MACHINE ────────────────────────── */
-    #slotMachine { display:none; }
-    .slot-reels { display:flex; gap:14px; justify-content:center; margin:10px 0; }
-    .slot-reel {
-      width:108px; height:128px; border-radius:16px;
-      border:3px solid #FFDF00; display:flex; flex-direction:column;
-      align-items:center; justify-content:center; gap:6px;
-      transition:background .12s;
-      box-shadow:0 6px 24px rgba(0,0,0,.5);
+    #slotMachine { display:none; margin:0 auto; max-width:360px; }
+    .slot-frame {
+      background:linear-gradient(160deg,#3d1f00 0%,#1a0800 100%);
+      border:3px solid #FFDF00; border-radius:22px;
+      padding:16px 12px 12px;
+      box-shadow:0 10px 40px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,200,0,.25);
     }
-    .slot-reel .sl-emoji { font-size:2.6rem; line-height:1; }
-    .slot-reel .sl-name  { font-size:.72rem; font-weight:700; text-align:center; padding:0 6px; }
-    .slot-reel.slot-win  { animation:slotpulse .35s ease-in-out 4; border-color:#0f6; }
-    @keyframes slotpulse  { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+    .slot-title {
+      text-align:center; color:#FFDF00; font-size:.95rem; font-weight:900;
+      letter-spacing:3px; text-transform:uppercase; margin-bottom:12px;
+      text-shadow:0 0 14px rgba(255,200,0,.7);
+    }
+    .slot-reels-wrap {
+      background:#080808; border-radius:14px; border:2px solid #3a3a3a;
+      padding:10px 8px; position:relative; overflow:visible;
+    }
+    .slot-reels-wrap::before, .slot-reels-wrap::after {
+      content:''; position:absolute; left:0; right:0; height:2px; pointer-events:none; z-index:10;
+    }
+    .slot-reels-wrap::before { top:calc(50% - 60px); background:rgba(255,60,60,.7); box-shadow:0 0 6px rgba(255,0,0,.5); }
+    .slot-reels-wrap::after  { top:calc(50% + 58px); background:rgba(255,60,60,.7); box-shadow:0 0 6px rgba(255,0,0,.5); }
+    .slot-reels { display:flex; gap:8px; justify-content:center; }
+    .slot-reel {
+      width:100px; height:118px; border-radius:10px;
+      border:2.5px solid #FFDF00; background:#fff;
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+      box-shadow:inset 0 2px 10px rgba(0,0,0,.15), 0 2px 8px rgba(0,0,0,.4);
+    }
+    .slot-reel .sl-emoji { font-size:3rem; line-height:1; }
+    .slot-reel .sl-name  {
+      font-size:.68rem; font-weight:900; color:#222; text-align:center;
+      padding:0 5px; text-transform:uppercase; letter-spacing:.5px;
+    }
+    .slot-reel.slot-win {
+      animation:slotpulse .32s ease-in-out 5;
+      border-color:#00ff66; box-shadow:0 0 22px rgba(0,255,100,.55), inset 0 2px 10px rgba(0,0,0,.15);
+    }
+    .slot-lights { display:flex; justify-content:space-around; margin-bottom:10px; }
+    .slot-light  {
+      width:12px; height:12px; border-radius:50%;
+      background:#ff4444; box-shadow:0 0 6px rgba(255,0,0,.6);
+      animation:blink 1.1s infinite alternate;
+    }
+    .slot-light:nth-child(2n) { background:#FFDF00; box-shadow:0 0 6px rgba(255,220,0,.6); animation-delay:.55s; }
+    @keyframes blink  { 0%{opacity:1} 100%{opacity:.25} }
+    @keyframes slotpulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.07)} }
 
     /* ── SPIN BUTTON ─────────────────────────── */
     .spin-btn {
@@ -479,10 +512,20 @@
 
     <!-- ── Caça-Níquel ─────────────────────── -->
     <div id="slotMachine">
-      <div class="slot-reels">
-        <div class="slot-reel" id="slotReel0"><div class="sl-emoji">🎁</div><div class="sl-name" style="color:#fff">–</div></div>
-        <div class="slot-reel" id="slotReel1"><div class="sl-emoji">🎁</div><div class="sl-name" style="color:#fff">–</div></div>
-        <div class="slot-reel" id="slotReel2"><div class="sl-emoji">🎁</div><div class="sl-name" style="color:#fff">–</div></div>
+      <div class="slot-frame">
+        <div class="slot-lights">
+          <div class="slot-light"></div><div class="slot-light"></div><div class="slot-light"></div>
+          <div class="slot-light"></div><div class="slot-light"></div><div class="slot-light"></div>
+          <div class="slot-light"></div>
+        </div>
+        <div class="slot-title">🎰 &nbsp;CAÇA-NÍQUEL &nbsp;🎰</div>
+        <div class="slot-reels-wrap">
+          <div class="slot-reels">
+            <div class="slot-reel" id="slotReel0"><div class="sl-emoji">🎰</div><div class="sl-name">?</div></div>
+            <div class="slot-reel" id="slotReel1"><div class="sl-emoji">🎰</div><div class="sl-name">?</div></div>
+            <div class="slot-reel" id="slotReel2"><div class="sl-emoji">🎰</div><div class="sl-name">?</div></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -686,7 +729,7 @@ const CFG = {
   ADMIN_USER:     'costaneiras',
   ADMIN_PASSWORD: 'HEXAADMIN',
   ACTIVE_DATES:   ["16062026"],   // Datas ativas — gerenciado pelo painel admin
-  GAME_MODE: 'slots', // HEXA_MODE
+  GAME_MODE: 'roulette', // HEXA_MODE
   PRIZES: [{"name":"Refrigerante","emoji":"🥤","qty":10,"color":"#FF6B6B","fg":"#fff","noWin":false},{"name":"Entrega Grátis","emoji":"🛵","qty":5,"color":"#4ECDC4","fg":"#003d15","noWin":false},{"name":"Pizza Grande","emoji":"🍕","qty":2,"color":"#FFE66D","fg":"#004d1a","noWin":false},{"name":"Pizza Doce","emoji":"🍰","qty":3,"color":"#FF9FF3","fg":"#003d15","noWin":false},{"name":"Não foi desta vez","emoji":"😅","qty":5,"color":"#333333","fg":"rgba(255,255,255,.5)","noWin":true}], // HEXA_PRIZES
 };
 
@@ -1161,11 +1204,12 @@ function initSlotDisplay() {
 
 function updateReel(el, prize) {
   if (!el || !prize) return;
-  el.style.background = prize.color||'#555';
+  el.style.background = '#fff';
+  el.style.borderColor = prize.color||'#FFDF00';
   el.querySelector('.sl-emoji').textContent = prize.emoji||'🎁';
   const nm = el.querySelector('.sl-name');
-  nm.textContent  = (prize.name||'').slice(0,12);
-  nm.style.color  = prize.fg||'#fff';
+  nm.textContent = (prize.name||'').slice(0,12);
+  nm.style.color = '#111';
 }
 
 function handleSpin() {
