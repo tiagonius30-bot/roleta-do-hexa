@@ -822,7 +822,7 @@ const ALL_PRIZES = (() => {
       for (let i = 1; i <= (p.qty||0); i++) {
         pool.push({ id:`${(p.slug?p.slug.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10):prizeSlug(p.name))}-${key}-${i}`, name:p.name,
           emoji:p.emoji||'🎁', color:p.color||'#555', fg:p.fg||'#fff',
-          noWin:!!p.noWin, prizeIdx:pi, dateKey:key });
+          noWin:!!p.noWin, prizeIdx:pi, dateKey:key, couponCode:p.couponCode||null });
       }
     });
     seededShuffle(pool, dayIdx * 31337 + 9001);
@@ -1455,7 +1455,7 @@ function showResult(c) {
   } else {
     document.getElementById('rParabens').textContent   = 'Parabéns! Você ganhou';
     document.getElementById('rSub').textContent        = 'Mostre esse código ao funcionário!';
-    document.getElementById('rCode').textContent       = c.id;
+    document.getElementById('rCode').textContent       = c.couponCode || c.id;
     document.getElementById('couponBox').style.display = '';
     document.getElementById('claimBtn').style.display  = '';
     document.getElementById('rNote').style.display     = '';
@@ -1476,7 +1476,7 @@ function showAlreadySpun(c) {
     if(codeEl) codeEl.style.display='none';
   } else if (c) {
     disp.textContent=(c.emoji||'🎁')+' '+(c.name||'Prêmio');
-    if(codeEl){codeEl.textContent='Código: '+c.id; codeEl.style.display='block';}
+    if(codeEl){codeEl.textContent='Código: '+(c.couponCode||c.id); codeEl.style.display='block';}
   }
   document.getElementById('alreadyBox').style.display='block';
   document.getElementById('spinBtn').style.display='none';
@@ -1589,7 +1589,7 @@ function rebuildPrizePool(){
     (CFG.PRIZES||[]).forEach((p,pi)=>{
       for(let i=1;i<=(p.qty||0);i++)
         pool.push({id:`${(p.slug?p.slug.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10):prizeSlug(p.name))}-${key}-${i}`,name:p.name,emoji:p.emoji||'🎁',
-          color:p.color||'#555',fg:p.fg||'#fff',noWin:!!p.noWin,prizeIdx:pi,dateKey:key});
+          color:p.color||'#555',fg:p.fg||'#fff',noWin:!!p.noWin,prizeIdx:pi,dateKey:key,couponCode:p.couponCode||null});
     });
     seededShuffle(pool,dayIdx*31337+9001);
     ALL_PRIZES[key]=pool;
@@ -1620,6 +1620,13 @@ function prizesRender(){
       ${p.noWin?'<span style="color:rgba(255,255,255,.4);font-size:.72rem;white-space:nowrap">(sem prêmio)</span>':''}
       <button type="button" onclick="prizeRemove(${i})"
         style="background:none;border:1px solid rgba(255,80,80,.4);color:rgba(255,100,100,.9);border-radius:7px;padding:5px 10px;cursor:pointer;font-size:.8rem;">✕</button>
+      ${!p.noWin?`<div style="width:100%;margin-top:4px;display:flex;align-items:center;gap:6px;">
+        <span style="font-size:.75rem;color:rgba(255,255,255,.5);white-space:nowrap;">📋 Código visível pelo cliente:</span>
+        <input type="text" value="${p.couponCode||''}" maxlength="30"
+          placeholder="Ex: HEXAMEDIA  (deixe vazio para usar o código interno)"
+          oninput="cfgGetWorkingPrizes()[${i}].couponCode=this.value.trim()"
+          style="flex:1;padding:5px 10px;border-radius:7px;border:1.5px solid rgba(100,220,255,.4);background:rgba(0,50,80,.4);color:#7be0ff;font-size:.85rem;font-family:monospace;font-weight:700;letter-spacing:1px;">
+      </div>`:''}
     </div>`).join('');
 }
 // ── EMOJI PICKER ──────────────────────────────────────
