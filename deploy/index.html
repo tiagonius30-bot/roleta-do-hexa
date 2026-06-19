@@ -1807,6 +1807,24 @@ window.selectAdminDay = function(d, btn) {
   renderAdminDay(d);
 };
 
+function openPrizeEditor(prizeIdx) {
+  const sec = document.getElementById('prizes-section');
+  if (!sec) return;
+  sec.open = true;
+  sec.scrollIntoView({ behavior:'smooth', block:'start' });
+  prizesRender();
+  if (prizeIdx >= 0) {
+    setTimeout(() => {
+      const rows = document.querySelectorAll('#prizes-list > div');
+      if (rows[prizeIdx]) {
+        rows[prizeIdx].style.outline = '2px solid #FFDF00';
+        rows[prizeIdx].scrollIntoView({ behavior:'smooth', block:'center' });
+        setTimeout(()=>{ if(rows[prizeIdx]) rows[prizeIdx].style.outline=''; }, 2000);
+      }
+    }, 200);
+  }
+}
+
 function renderAdminDay(dayIdx) {
   const dates=CFG.ACTIVE_DATES||[], key=dates[dayIdx];
   if (!key){document.getElementById('dayContent').innerHTML='';return;}
@@ -1818,12 +1836,21 @@ function renderAdminDay(dayIdx) {
     <h3>📅 ${date.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
       ${isToday?'<span class="today-badge">HOJE</span>':''}</h3>
     <span class="day-usage">${usedCnt}/${winPool.length} entregues</span>
+  </div>
+  <div style="display:flex;justify-content:flex-end;margin:-6px 0 10px;">
+    <button onclick="openPrizeEditor(-1)"
+      style="font-size:.78rem;padding:4px 12px;border-radius:6px;border:1.5px solid rgba(255,223,0,.4);background:rgba(0,0,0,.35);color:var(--yellow);cursor:pointer;font-weight:700;">✏️ Editar prêmios</button>
   </div>`;
   (CFG.PRIZES||[]).filter(p=>!p.noWin).forEach(p=>{
     const group=pool.filter(c=>c.name===p.name);
     if(!group.length)return;
     const gUsed=group.filter(c=>used[c.id]).length;
-    html+=`<div class="slot-group"><div class="slot-title">${p.emoji||'🎁'} ${p.name} — ${gUsed}/${group.length} entregue${group.length>1?'s':''}</div><div class="code-grid">`;
+    const prIdx=(CFG.PRIZES||[]).indexOf(p);
+    html+=`<div class="slot-group"><div class="slot-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <span>${p.emoji||'🎁'} ${p.name} — ${gUsed}/${group.length} entregue${group.length>1?'s':''}</span>
+      <button onclick="openPrizeEditor(${prIdx})"
+        style="font-size:.72rem;padding:2px 8px;border-radius:5px;border:1px solid rgba(255,223,0,.35);background:rgba(0,0,0,.4);color:rgba(255,223,0,.8);cursor:pointer;white-space:nowrap;flex-shrink:0;">✏️ Editar</button>
+    </div><div class="code-grid">`;
     group.forEach(c=>{
       const isUsed=!!used[c.id], rec=used[c.id]||{};
       const info=isUsed?`(${rec.via==='admin'?'Admin':'Cliente'} ${new Date(rec.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})})`:'';
