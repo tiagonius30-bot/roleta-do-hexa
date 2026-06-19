@@ -713,8 +713,12 @@
                placeholder="https://seu-projeto-default-rtdb.firebaseio.com"
                style="flex:1;min-width:220px;padding:8px 10px;border-radius:8px;border:1.5px solid rgba(255,150,0,.4);background:rgba(0,0,0,.4);color:#fff;font-size:.85rem;">
         <button onclick="fbSaveUrl()"
-                style="padding:8px 16px;background:rgba(255,100,0,.2);border:1.5px solid #FF9500;border-radius:8px;color:#FF9500;font-weight:700;cursor:pointer;font-size:.85rem;white-space:nowrap;">
-          💾 Salvar URL
+                style="padding:8px 14px;background:rgba(255,100,0,.2);border:1.5px solid #FF9500;border-radius:8px;color:#FF9500;font-weight:700;cursor:pointer;font-size:.82rem;white-space:nowrap;">
+          💾 Salvar (aqui)
+        </button>
+        <button id="fb-publish-btn" onclick="fbPublishUrl()"
+                style="padding:8px 14px;background:linear-gradient(135deg,rgba(0,180,100,.3),rgba(0,120,60,.3));border:2px solid #0c6;border-radius:8px;color:#0f0;font-weight:800;cursor:pointer;font-size:.82rem;white-space:nowrap;">
+          🚀 Publicar Firebase
         </button>
       </div>
       <p id="fb-url-status" style="font-size:.78rem;color:rgba(255,255,255,.45);margin:6px 0 0"></p>
@@ -839,6 +843,7 @@ const CFG = {
   COUPON_VALID: 'Válido hoje', // HEXA_COUPON_VALID
   COUPON_NOTE:  'Apresente esse código ao funcionário para resgatar seu prêmio', // HEXA_COUPON_NOTE
   COUPON_BTN:   '🍽️ VER CARDÁPIO', // HEXA_COUPON_BTN
+  FIREBASE_URL: '', // HEXA_FIREBASE_URL
 };
 
 // ══════════════════════════════════════════════
@@ -1127,7 +1132,8 @@ function cfgInitUI() {
   if (fbUrl) {
     document.getElementById('firebase-url-input').value = fbUrl;
     const st = document.getElementById('fb-url-status');
-    st.style.color = '#0f0'; st.textContent = '✅ Firebase ativo — rastreamento automático habilitado.';
+    const src = CFG.FIREBASE_URL ? ' (publicado no HTML)' : ' (só neste dispositivo)';
+    st.style.color = '#0f0'; st.textContent = '✅ Firebase ativo' + src + '.';
   }
 }
 
@@ -1136,7 +1142,7 @@ function cfgInitUI() {
 // REST API do Realtime Database (sem SDK, sem auth em modo teste)
 // ══════════════════════════════════════════════
 const LS_FB_URL = 'hexa_firebase_db';
-function fbGetUrl() { return (localStorage.getItem(LS_FB_URL) || '').replace(/\/$/, ''); }
+function fbGetUrl() { return (CFG.FIREBASE_URL || localStorage.getItem(LS_FB_URL) || '').replace(/\/$/, ''); }
 
 window.fbSaveUrl = function() {
   const v  = (document.getElementById('firebase-url-input').value || '').trim().replace(/\/$/, '');
@@ -1144,7 +1150,35 @@ window.fbSaveUrl = function() {
   if (!v || !v.startsWith('https://')) { st.style.color='#f66'; st.textContent='⚠️ URL inválida.'; return; }
   localStorage.setItem(LS_FB_URL, v);
   document.getElementById('firebase-url-input').value = v;
-  st.style.color = '#0f0'; st.textContent = '✅ URL salva! Rastreamento ativo.';
+  st.style.color = '#0f0'; st.textContent = '✅ URL salva! Clique em 🚀 Publicar Firebase para todos os dispositivos.';
+};
+
+window.fbPublishUrl = async function() {
+  const v   = (document.getElementById('firebase-url-input').value || '').trim().replace(/\/$/, '');
+  const st  = document.getElementById('fb-url-status');
+  const btn = document.getElementById('fb-publish-btn');
+  if (!v || !v.startsWith('https://')) { st.style.color='#f66'; st.textContent='⚠️ URL inválida.'; return; }
+  let token = cfgGetToken();
+  if (!token) { token=prompt('Cole seu GitHub Personal Access Token:'); if(!token)return; cfgSaveGhToken(token); }
+  btn.textContent='⏳ Publicando...'; btn.disabled=true;
+  try {
+    const headers={'Authorization':`token ${token}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'};
+    const getR=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{headers});
+    if(!getR.ok){if(getR.status===401)localStorage.removeItem(LS_GH_TOKEN);throw new Error('Erro GitHub: '+getR.status);}
+    const fd=await getR.json();
+    let dec=new TextDecoder('utf-8').decode(Uint8Array.from(atob(fd.content.replace(/\n/g,'')),x=>x.charCodeAt(0)));
+    dec=dec.replace(/FIREBASE_URL:\s*'[^']*',\s*\/\/ HEXA_FIREBASE_URL/,`FIREBASE_URL: '${v}', // HEXA_FIREBASE_URL`);
+    const enc=new TextEncoder(),bytes=enc.encode(dec);
+    let bin=''; bytes.forEach(b=>bin+=String.fromCharCode(b));
+    const now=new Date().toLocaleString('pt-BR',{timeZone:CFG.TIMEZONE});
+    const putR=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{
+      method:'PUT',headers,body:JSON.stringify({message:`Admin: Firebase URL publicada (${now})`,content:btoa(bin),sha:fd.sha})});
+    if(!putR.ok) throw new Error('Erro ao salvar: '+putR.status);
+    CFG.FIREBASE_URL = v;
+    localStorage.setItem(LS_FB_URL, v);
+    st.style.color='#0f0'; st.innerHTML='✅ Firebase publicado! Clientes em qualquer dispositivo vão rastrear. Deploy ~30s.';
+  } catch(e) { st.style.color='#f66'; st.textContent='❌ '+e.message; }
+  btn.textContent='🚀 Publicar Firebase'; btn.disabled=false;
 };
 
 async function fbRead(path) {
