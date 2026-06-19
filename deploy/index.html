@@ -142,6 +142,13 @@
       font-size:.68rem; font-weight:900; color:#222; text-align:center;
       padding:0 5px; text-transform:uppercase; letter-spacing:.5px;
     }
+    /* ── EMOJI PICKER ── */
+    .emoji-picker { position:fixed; z-index:9999; background:#1a1a1a; border:2px solid rgba(255,223,0,.5);
+      border-radius:12px; padding:10px; display:grid; grid-template-columns:repeat(8,36px);
+      gap:4px; box-shadow:0 8px 32px rgba(0,0,0,.8); max-width:320px; }
+    .emoji-picker span { font-size:1.5rem; cursor:pointer; text-align:center; line-height:36px;
+      border-radius:6px; transition:background .1s; }
+    .emoji-picker span:hover { background:rgba(255,223,0,.2); }
     .slot-reel.slot-win {
       animation:slotpulse .32s ease-in-out 5;
       border-color:#00ff66; box-shadow:0 0 22px rgba(0,255,100,.55), inset 0 2px 10px rgba(0,0,0,.15);
@@ -555,7 +562,7 @@
     <div class="r-value"  id="rValue">🎁</div>
     <div class="r-sub" id="rSub">Apresente ao funcionário para resgatar!</div>
     <div class="coupon-box" id="couponBox">
-      <div class="cb-label">🎁 Seu Prêmio</div>
+      <div class="cb-label" id="rCouponLabel">🎁 Seu Prêmio</div>
       <div class="cb-code"  id="rCode">---</div>
       <div class="cb-valid" id="rValid">Válido hoje</div>
       <button class="copy-btn" id="copyBtn" onclick="copyCoupon()">📋 COPIAR CÓDIGO</button>
@@ -699,6 +706,43 @@
     </div>
   </details>
 
+  <!-- ── Seção: Editar Cupom ── -->
+  <details id="coupon-section" style="margin-bottom:18px;border:1.5px solid rgba(100,180,255,.45);border-radius:10px;overflow:hidden;">
+    <summary style="padding:12px 16px;background:rgba(0,0,0,.45);cursor:pointer;color:#7be0ff;font-weight:700;font-size:.95rem;list-style:none;display:flex;align-items:center;gap:8px;">
+      🎟️ Editar Cupom
+    </summary>
+    <div style="padding:16px;background:rgba(0,0,0,.25);">
+      <p style="color:rgba(255,255,255,.6);font-size:.82rem;margin:0 0 12px">Personalize o texto do cupom que o cliente vê ao ganhar. Clique em <strong style="color:#7be0ff">Publicar Cupom</strong> para salvar.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
+        <label style="color:rgba(255,255,255,.7);font-size:.82rem;font-weight:700;">Título do cupom
+          <input id="coupon-label-inp" type="text" maxlength="40"
+            style="display:block;width:100%;margin-top:4px;padding:7px 10px;border-radius:7px;border:1.5px solid rgba(100,180,255,.3);background:rgba(0,0,0,.45);color:#fff;font-size:.9rem;box-sizing:border-box;">
+        </label>
+        <label style="color:rgba(255,255,255,.7);font-size:.82rem;font-weight:700;">Texto de validade
+          <input id="coupon-valid-inp" type="text" maxlength="40"
+            style="display:block;width:100%;margin-top:4px;padding:7px 10px;border-radius:7px;border:1.5px solid rgba(100,180,255,.3);background:rgba(0,0,0,.45);color:#fff;font-size:.9rem;box-sizing:border-box;">
+        </label>
+        <label style="color:rgba(255,255,255,.7);font-size:.82rem;font-weight:700;">Instrução ao cliente (nota)
+          <input id="coupon-note-inp" type="text" maxlength="120"
+            style="display:block;width:100%;margin-top:4px;padding:7px 10px;border-radius:7px;border:1.5px solid rgba(100,180,255,.3);background:rgba(0,0,0,.45);color:#fff;font-size:.9rem;box-sizing:border-box;">
+        </label>
+        <label style="color:rgba(255,255,255,.7);font-size:.82rem;font-weight:700;">Texto do botão "cardápio"
+          <input id="coupon-btn-inp" type="text" maxlength="40"
+            style="display:block;width:100%;margin-top:4px;padding:7px 10px;border-radius:7px;border:1.5px solid rgba(100,180,255,.3);background:rgba(0,0,0,.45);color:#fff;font-size:.9rem;box-sizing:border-box;">
+        </label>
+        <label style="color:rgba(255,255,255,.7);font-size:.82rem;font-weight:700;">URL do cardápio
+          <input id="coupon-url-inp" type="url" maxlength="300"
+            style="display:block;width:100%;margin-top:4px;padding:7px 10px;border-radius:7px;border:1.5px solid rgba(100,180,255,.3);background:rgba(0,0,0,.45);color:#fff;font-size:.85rem;box-sizing:border-box;">
+        </label>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" id="coupon-publish-btn" onclick="publishCoupon()"
+          style="padding:8px 20px;background:linear-gradient(135deg,rgba(0,120,220,.35),rgba(0,60,160,.35));border:2px solid #4af;border-radius:8px;color:#7be0ff;font-weight:800;cursor:pointer;font-size:.9rem;">🚀 Publicar Cupom</button>
+      </div>
+      <div id="coupon-msg" style="margin-top:8px;font-size:.85rem;min-height:20px;color:#4af;"></div>
+    </div>
+  </details>
+
   <div class="adm-note">
     ℹ️ <strong>Como validar:</strong> quando o cliente mostrar o prêmio, localize o código aqui e clique em
     <em>"Marcar Entregue"</em>. Os prêmios marcados ficam salvos neste dispositivo e no Firebase.
@@ -728,9 +772,13 @@ const CFG = {
   MENU_URL:       'https://costaneirasgrill.com.br/centro/pedidos?utm_source=META&utm_campaign=delivery',
   ADMIN_USER:     'costaneiras',
   ADMIN_PASSWORD: 'HEXAADMIN',
-  ACTIVE_DATES:   ["16062026"],   // Datas ativas — gerenciado pelo painel admin
-  GAME_MODE: 'roulette', // HEXA_MODE
+  ACTIVE_DATES:   [],   // Datas ativas — gerenciado pelo painel admin
+  GAME_MODE: 'slots', // HEXA_MODE
   PRIZES: [{"name":"Refrigerante","emoji":"🥤","qty":10,"color":"#FF6B6B","fg":"#fff","noWin":false},{"name":"Entrega Grátis","emoji":"🛵","qty":5,"color":"#4ECDC4","fg":"#003d15","noWin":false},{"name":"Pizza Grande","emoji":"🍕","qty":2,"color":"#FFE66D","fg":"#004d1a","noWin":false},{"name":"Pizza Doce","emoji":"🍰","qty":3,"color":"#FF9FF3","fg":"#003d15","noWin":false},{"name":"Não foi desta vez","emoji":"😅","qty":5,"color":"#333333","fg":"rgba(255,255,255,.5)","noWin":true}], // HEXA_PRIZES
+  COUPON_LABEL: '🎁 Seu Prêmio', // HEXA_COUPON_LABEL
+  COUPON_VALID: 'Válido hoje', // HEXA_COUPON_VALID
+  COUPON_NOTE:  'Apresente esse código ao funcionário para resgatar seu prêmio', // HEXA_COUPON_NOTE
+  COUPON_BTN:   '🍽️ VER CARDÁPIO', // HEXA_COUPON_BTN
 };
 
 // ══════════════════════════════════════════════
@@ -1413,7 +1461,10 @@ function showResult(c) {
     document.getElementById('rNote').style.display     = '';
     launchConfetti(60);
   }
-  document.getElementById('rValid').textContent=`Válido hoje ${dl} · das ${CFG.START_HOUR}h às ${CFG.END_HOUR}h (Sinop/MT)`;
+  document.getElementById('rCouponLabel').textContent = CFG.COUPON_LABEL||'🎁 Seu Prêmio';
+  document.getElementById('rValid').textContent = (CFG.COUPON_VALID||'Válido hoje')+' '+dl+' · das '+CFG.START_HOUR+'h às '+CFG.END_HOUR+'h (Sinop/MT)';
+  document.getElementById('rNote').textContent  = CFG.COUPON_NOTE||'Apresente esse código ao funcionário para resgatar seu prêmio';
+  document.getElementById('claimBtn').textContent = CFG.COUPON_BTN||'🍽️ VER CARDÁPIO';
   document.getElementById('resultModal').classList.add('show');
 }
 
@@ -1550,9 +1601,9 @@ function prizesRender(){
   if(!prizes.length){el.innerHTML='<p style="color:rgba(255,255,255,.4);font-size:.85rem;margin:0">Nenhum prêmio configurado.</p>';return;}
   el.innerHTML=prizes.map((p,i)=>`
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap;background:rgba(255,255,255,.04);border-radius:8px;padding:8px 10px;">
-      <input type="text" value="${p.emoji||'🎁'}" maxlength="4" placeholder="🎁"
-        oninput="cfgGetWorkingPrizes()[${i}].emoji=this.value"
-        style="width:42px;text-align:center;padding:6px 4px;border-radius:7px;border:1.5px solid rgba(255,223,0,.3);background:rgba(0,0,0,.4);color:#fff;font-size:1.3rem;">
+      <span style="font-size:1.6rem;cursor:pointer;border:1.5px solid rgba(255,223,0,.3);border-radius:7px;padding:3px 6px;background:rgba(0,0,0,.4);"
+        title="Clique para trocar ícone"
+        onclick="openEmojiPicker(event,${i})">${p.emoji||'🎁'}</span>
       <input type="text" value="${p.name||''}" placeholder="Nome do prêmio"
         oninput="cfgGetWorkingPrizes()[${i}].name=this.value"
         style="flex:1;min-width:110px;padding:6px 10px;border-radius:7px;border:1.5px solid rgba(255,223,0,.3);background:rgba(0,0,0,.4);color:#fff;font-size:.9rem;">
@@ -1567,6 +1618,92 @@ function prizesRender(){
         style="background:none;border:1px solid rgba(255,80,80,.4);color:rgba(255,100,100,.9);border-radius:7px;padding:5px 10px;cursor:pointer;font-size:.8rem;">✕</button>
     </div>`).join('');
 }
+// ── EMOJI PICKER ──────────────────────────────────────
+const EMOJI_LIST=[
+  '🥤','🍕','🍰','🛵','🎁','😅','🍔','🍟','🍗','🍖','🌮','🌯','🥗','🍜','🍝',
+  '🥩','🍣','🍱','🍛','🥘','🫕','🍲','🥪','🥙','🫔','🌭','🧆','🧇','🥞','🧈',
+  '🍩','🍪','🎂','🧁','🍫','🍿','🧃','🥛','☕','🍷','🍾','🎉','⭐','🏆','💫',
+  '🔥','❤️','🎊','💰','✨','🎀','🎈','🥂','🍺','🍻','🫗','🥃'
+];
+let _emojiPickerIdx = -1;
+function openEmojiPicker(ev, idx) {
+  ev.stopPropagation();
+  document.querySelectorAll('.emoji-picker').forEach(el=>el.remove());
+  _emojiPickerIdx = idx;
+  const pk = document.createElement('div');
+  pk.className = 'emoji-picker';
+  pk.innerHTML = EMOJI_LIST.map(e=>`<span onclick="pickEmoji('${e}')">${e}</span>`).join('');
+  const r = ev.target.getBoundingClientRect();
+  pk.style.top  = (r.bottom + window.scrollY + 4) + 'px';
+  pk.style.left = Math.min(r.left, window.innerWidth - 340) + 'px';
+  document.body.appendChild(pk);
+  setTimeout(()=>document.addEventListener('click',closePicker,{once:true}),0);
+}
+function pickEmoji(e) {
+  if (_emojiPickerIdx < 0) return;
+  cfgGetWorkingPrizes()[_emojiPickerIdx].emoji = e;
+  prizesRender();
+  document.querySelectorAll('.emoji-picker').forEach(el=>el.remove());
+}
+function closePicker() { document.querySelectorAll('.emoji-picker').forEach(el=>el.remove()); }
+
+// ── COUPON PUBLISH ─────────────────────────────────────
+window.publishCoupon = async function() {
+  const msg=document.getElementById('coupon-msg'), btn=document.getElementById('coupon-publish-btn');
+  const label = document.getElementById('coupon-label-inp').value.trim();
+  const valid = document.getElementById('coupon-valid-inp').value.trim();
+  const note  = document.getElementById('coupon-note-inp').value.trim();
+  const cbtn  = document.getElementById('coupon-btn-inp').value.trim();
+  const url   = document.getElementById('coupon-url-inp').value.trim();
+  if (!label && !valid && !note && !cbtn && !url) {
+    msg.style.color='#f88'; msg.textContent='⚠️ Nenhuma alteração para salvar.'; return;
+  }
+  let token = cfgGetToken();
+  if (!token) { token=prompt('Cole seu GitHub Personal Access Token:'); if(!token)return; cfgSaveGhToken(token); }
+  btn.textContent='⏳ Publicando...'; btn.disabled=true;
+  msg.style.color='#fff'; msg.textContent='Buscando arquivo...';
+  try {
+    const headers={'Authorization':`token ${token}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'};
+    const getR=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{headers});
+    if(!getR.ok){if(getR.status===401)localStorage.removeItem(LS_GH_TOKEN);throw new Error('Erro GitHub: '+getR.status);}
+    const fd=await getR.json();
+    let dec=new TextDecoder('utf-8').decode(Uint8Array.from(atob(fd.content.replace(/\n/g,'')),x=>x.charCodeAt(0)));
+    if(label) dec=dec.replace(/COUPON_LABEL:\s*'[^']*',\s*\/\/ HEXA_COUPON_LABEL/,`COUPON_LABEL: '${label.replace(/'/g,"\\'")}', // HEXA_COUPON_LABEL`);
+    if(valid) dec=dec.replace(/COUPON_VALID:\s*'[^']*',\s*\/\/ HEXA_COUPON_VALID/,`COUPON_VALID: '${valid.replace(/'/g,"\\'")}', // HEXA_COUPON_VALID`);
+    if(note)  dec=dec.replace(/COUPON_NOTE:\s*'[^']*',\s*\/\/ HEXA_COUPON_NOTE/,`COUPON_NOTE:  '${note.replace(/'/g,"\\'")}', // HEXA_COUPON_NOTE`);
+    if(cbtn)  dec=dec.replace(/COUPON_BTN:\s*'[^']*',\s*\/\/ HEXA_COUPON_BTN/,`COUPON_BTN:   '${cbtn.replace(/'/g,"\\'")}', // HEXA_COUPON_BTN`);
+    if(url)   dec=dec.replace(/MENU_URL:\s*'[^']*',/,`MENU_URL: '${url}',`);
+    msg.textContent='Enviando...';
+    const enc=new TextEncoder(),bytes=enc.encode(dec);
+    let bin=''; bytes.forEach(b=>bin+=String.fromCharCode(b));
+    const now=new Date().toLocaleString('pt-BR',{timeZone:CFG.TIMEZONE});
+    const putR=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{
+      method:'PUT',headers,body:JSON.stringify({message:`Admin: cupom atualizado (${now})`,content:btoa(bin),sha:fd.sha})});
+    if(!putR.ok) throw new Error('Erro ao salvar: '+putR.status);
+    if(label) CFG.COUPON_LABEL=label;
+    if(valid) CFG.COUPON_VALID=valid;
+    if(note)  CFG.COUPON_NOTE=note;
+    if(cbtn)  CFG.COUPON_BTN=cbtn;
+    if(url)   CFG.MENU_URL=url;
+    msg.style.color='#4af'; msg.innerHTML='✅ Cupom publicado! Deploy em ~30s.';
+  } catch(e) { msg.style.color='#f66'; msg.textContent='❌ '+e.message; }
+  btn.textContent='🚀 Publicar Cupom'; btn.disabled=false;
+};
+
+// preenche os campos do cupom ao abrir o details
+document.addEventListener('DOMContentLoaded',()=>{
+  const cs=document.getElementById('coupon-section');
+  if(cs) cs.addEventListener('toggle',function(){
+    if(this.open){
+      document.getElementById('coupon-label-inp').value = CFG.COUPON_LABEL||'🎁 Seu Prêmio';
+      document.getElementById('coupon-valid-inp').value = CFG.COUPON_VALID||'Válido hoje';
+      document.getElementById('coupon-note-inp').value  = CFG.COUPON_NOTE||'Apresente esse código ao funcionário para resgatar seu prêmio';
+      document.getElementById('coupon-btn-inp').value   = CFG.COUPON_BTN||'🍽️ VER CARDÁPIO';
+      document.getElementById('coupon-url-inp').value   = CFG.MENU_URL||'';
+    }
+  });
+});
+
 window.prizeAdd=function(){
   cfgGetWorkingPrizes().push({name:'Novo Prêmio',emoji:'🎁',qty:5,color:'#888888',fg:'#fff',noWin:false});
   prizesRender();
