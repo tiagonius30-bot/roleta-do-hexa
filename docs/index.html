@@ -543,11 +543,17 @@
     <!-- Already spun today -->
     <div class="already-box" id="alreadyBox">
       <h3>✅ Você já girou hoje!</h3>
-      <p style="color:rgba(255,255,255,.7);font-size:.88rem">Seu prêmio do dia:</p>
+      <p style="color:rgba(255,255,255,.7);font-size:.88rem;margin:0 0 6px">Seu prêmio do dia:</p>
       <div class="saved-code" id="savedCodeDisplay"></div>
-      <button class="goto-btn" onclick="goToMenu()">🍽️ Ir para o Cardápio</button>
-      <div id="savedPrizeCode" style="font-size:.75rem;color:rgba(255,255,255,.5);margin-top:4px;display:none"></div>
-      <p style="color:rgba(255,255,255,.45);font-size:.72rem;margin-top:8px">Válido somente hoje no horário da promoção</p>
+      <!-- Coupon box (same visual as modal) -->
+      <div class="coupon-box" id="alreadyCouponBox" style="display:none;margin:10px 0;">
+        <div class="cb-label" id="alreadyCouponLabel">🎁 Seu Prêmio</div>
+        <div class="cb-code"  id="alreadyCouponCode">---</div>
+        <div class="cb-valid" id="alreadyCouponValid">Válido hoje</div>
+        <button class="copy-btn" id="alreadyCopyBtn" onclick="copyAlreadyCoupon()">📋 COPIAR CÓDIGO</button>
+      </div>
+      <button class="goto-btn" onclick="goToMenu()" id="alreadyMenuBtn">🍽️ Ir para o Cardápio</button>
+      <p style="color:rgba(255,255,255,.45);font-size:.72rem;margin-top:8px" id="alreadyNote">Válido somente hoje no horário da promoção</p>
     </div>
   </div>
 </div>
@@ -1469,17 +1475,40 @@ function showResult(c) {
 }
 
 function showAlreadySpun(c) {
-  const disp=document.getElementById('savedCodeDisplay');
-  const codeEl=document.getElementById('savedPrizeCode');
-  if (c&&c.noWin) {
-    disp.textContent=(c.emoji||'😅')+' '+(c.name||'Não foi desta vez');
-    if(codeEl) codeEl.style.display='none';
+  const disp    = document.getElementById('savedCodeDisplay');
+  const couponB = document.getElementById('alreadyCouponBox');
+  if (c && c.noWin) {
+    disp.textContent = (c.emoji||'😅')+' '+(c.name||'Não foi desta vez');
+    if (couponB) couponB.style.display = 'none';
   } else if (c) {
-    disp.textContent=(c.emoji||'🎁')+' '+(c.name||'Prêmio');
-    if(codeEl){codeEl.textContent='Código: '+(c.couponCode||c.id); codeEl.style.display='block';}
+    disp.textContent = (c.emoji||'🎁')+' '+(c.name||'Prêmio');
+    if (couponB) {
+      const tk=todayKey(), dl=tk.slice(0,2)+'/'+tk.slice(2,4)+'/'+tk.slice(4);
+      document.getElementById('alreadyCouponLabel').textContent = CFG.COUPON_LABEL||'🎁 Seu Prêmio';
+      document.getElementById('alreadyCouponCode').textContent  = c.couponCode || c.id;
+      document.getElementById('alreadyCouponValid').textContent = (CFG.COUPON_VALID||'Válido hoje')+' '+dl+' · das '+CFG.START_HOUR+'h às '+CFG.END_HOUR+'h';
+      document.getElementById('alreadyNote').textContent        = CFG.COUPON_NOTE||'Apresente esse código ao funcionário para resgatar seu prêmio';
+      document.getElementById('alreadyMenuBtn').textContent     = CFG.COUPON_BTN||'🍽️ VER CARDÁPIO';
+      couponB.style.display = '';
+    }
   }
-  document.getElementById('alreadyBox').style.display='block';
-  document.getElementById('spinBtn').style.display='none';
+  document.getElementById('alreadyBox').style.display = 'block';
+  document.getElementById('spinBtn').style.display    = 'none';
+}
+
+function copyAlreadyCoupon() {
+  const code = document.getElementById('alreadyCouponCode').textContent.trim();
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = document.getElementById('alreadyCopyBtn');
+    btn.textContent = '✅ COPIADO!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 COPIAR CÓDIGO'; btn.classList.remove('copied'); }, 2000);
+  }).catch(() => {
+    const r = document.createRange();
+    r.selectNode(document.getElementById('alreadyCouponCode'));
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(r);
+  });
 }
 
 function copyCoupon() {
