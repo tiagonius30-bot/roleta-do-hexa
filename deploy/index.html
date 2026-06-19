@@ -239,6 +239,13 @@
       font-size: .82rem; color: rgba(255,255,255,.85); font-weight: 600;
     }
     .prize-chip-emoji { font-size: 1.1rem; line-height: 1; }
+    .prizes-exhausted-box {
+      display:none; margin:14px auto 0; max-width:380px;
+      background:rgba(60,0,0,.5); border:2px solid rgba(255,80,80,.45);
+      border-radius:14px; padding:18px 20px; text-align:center;
+    }
+    .prizes-exhausted-box h3 { color:#ff6666; margin:0 0 6px; font-size:1rem; }
+    .prizes-exhausted-box p  { color:rgba(255,255,255,.6); font-size:.82rem; margin:0; }
     .prize-rules {
       margin: 12px auto 0;
       max-width: 380px;
@@ -574,6 +581,12 @@
 
     <!-- Prize showcase -->
     <div class="prize-showcase" id="prizeShowcase"></div>
+
+    <!-- Prizes exhausted banner -->
+    <div class="prizes-exhausted-box" id="prizesExhaustedBox">
+      <h3>😔 Prêmios esgotados!</h3>
+      <p>Todos os prêmios de hoje já foram distribuídos.<br>Volte amanhã para tentar de novo!</p>
+    </div>
 
     <!-- Instrução de resgate -->
     <div class="prize-rules">
@@ -1279,6 +1292,18 @@ drawWheel(curAngle);
 // ══════════════════════════════════════════════
 // SLOT MACHINE
 // ══════════════════════════════════════════════
+function showPrizesExhausted() {
+  const box = document.getElementById('prizesExhaustedBox');
+  const btn = document.getElementById('spinBtn');
+  if (box) box.style.display = 'block';
+  if (btn) { btn.disabled = true; btn.style.opacity = '.4'; }
+}
+
+function hidePrizesExhausted() {
+  const box = document.getElementById('prizesExhaustedBox');
+  if (box) box.style.display = 'none';
+}
+
 function renderPrizeShowcase() {
   const el = document.getElementById('prizeShowcase');
   if (!el) return;
@@ -1329,15 +1354,16 @@ function handleSpin() {
 
 let slotSpinning = false;
 
-function spinSlots() {
+async function spinSlots() {
   if (slotSpinning) return;
   const saved = getSavedCoupon();
   if (saved) { showAlreadySpun(saved); return; }
   const pool = ALL_PRIZES[todayKey()];
   if (!pool) { alert('Promoção não ativa hoje!'); return; }
+  await fbSyncToLocal(todayKey());
   const adminUsed  = getAdminUsed();
   const available  = pool.filter(c=>!adminUsed[c.id]);
-  if (!available.length) { alert('Prêmios do dia esgotados!'); return; }
+  if (!available.length) { showPrizesExhausted(); return; }
 
   const idx    = deterministicIndex(available);
   const winner = available[idx];
@@ -1447,7 +1473,7 @@ function deterministicIndex(pool) {
 // ══════════════════════════════════════════════
 // SPIN
 // ══════════════════════════════════════════════
-function spinWheel() {
+async function spinWheel() {
   if (spinning) return;
 
   // Se já girou hoje (neste navegador), mostra resultado sem rolar de novo
@@ -1456,9 +1482,10 @@ function spinWheel() {
 
   const pool = ALL_PRIZES[todayKey()];
   if (!pool) { alert('Promoção não ativa hoje. Volte amanhã!'); return; }
+  await fbSyncToLocal(todayKey());
   const adminUsed = getAdminUsed();
   const available = pool.filter(c => !adminUsed[c.id]);
-  if (available.length === 0) { alert('Todos os prêmios do dia foram utilizados! Volte amanhã.'); return; }
+  if (available.length === 0) { showPrizesExhausted(); return; }
   const idx    = deterministicIndex(available);
   const winner = available[idx];
   const prizes = CFG.PRIZES || [];
@@ -2070,9 +2097,19 @@ window.addEventListener('load', async () => {
   // ── Init fingerprint (async, melhora unicidade) ──
   await initFingerprint();
 
-  // ── Checa se já girou hoje (logo ao abrir, sem precisar clicar) ──
+  // ── Sync Firebase + checa disponibilidade ao abrir ──
+  await fbSyncToLocal(todayKey());
   const savedOnLoad = getSavedCoupon();
-  if (savedOnLoad) { showAlreadySpun(savedOnLoad); }
+  if (savedOnLoad) {
+    showAlreadySpun(savedOnLoad);
+  } else {
+    const poolNow = ALL_PRIZES[todayKey()];
+    if (poolNow) {
+      const usedNow = getAdminUsed();
+      const avail   = poolNow.filter(c=>!usedNow[c.id]);
+      if (!avail.length) showPrizesExhausted();
+    }
+  }
 
   // ── Wheel already drawn at script parse time; redraw after fp ready ──
   drawWheel(curAngle);
