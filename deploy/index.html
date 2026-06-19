@@ -1644,10 +1644,19 @@ function openEmojiPicker(ev, idx) {
   const pk = document.createElement('div');
   pk.className = 'emoji-picker';
   pk.innerHTML = EMOJI_LIST.map(e=>`<span onclick="pickEmoji('${e}')">${e}</span>`).join('');
-  const r = ev.target.getBoundingClientRect();
-  pk.style.top  = (r.bottom + window.scrollY + 4) + 'px';
-  pk.style.left = Math.min(r.left, window.innerWidth - 340) + 'px';
   document.body.appendChild(pk);
+  const r  = ev.target.getBoundingClientRect();
+  const pw = pk.offsetWidth  || 320;
+  const ph = pk.offsetHeight || 200;
+  const maxLeft = window.innerWidth  - pw - 8;
+  const left    = Math.min(Math.max(r.left, 8), maxLeft);
+  // abre acima se não couber abaixo
+  const spaceBelow = window.innerHeight - r.bottom;
+  const top = spaceBelow > ph + 10
+    ? r.bottom + window.scrollY + 4
+    : r.top + window.scrollY - ph - 4;
+  pk.style.top  = top  + 'px';
+  pk.style.left = left + 'px';
   setTimeout(()=>document.addEventListener('click',closePicker,{once:true}),0);
 }
 function pickEmoji(e) {
