@@ -221,6 +221,25 @@
     }
     .goto-btn:hover { background: var(--gold); }
 
+    /* ── PRIZE SHOWCASE ─────────────────────── */
+    .prize-showcase {
+      margin: 14px auto 0;
+      max-width: 420px;
+      padding: 0 12px;
+    }
+    .prize-showcase-title {
+      font-size: .72rem; letter-spacing: 2px; text-transform: uppercase;
+      color: rgba(255,255,255,.5); text-align: center; margin-bottom: 8px;
+    }
+    .prize-chips { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
+    .prize-chip {
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(0,0,0,.4); border: 1.5px solid rgba(255,223,0,.35);
+      border-radius: 20px; padding: 5px 12px 5px 8px;
+      font-size: .82rem; color: rgba(255,255,255,.85); font-weight: 600;
+    }
+    .prize-chip-emoji { font-size: 1.1rem; line-height: 1; }
+
     /* ── RESULT MODAL ────────────────────────── */
     .modal-overlay {
       display: none;
@@ -539,6 +558,9 @@
     <button class="spin-btn" id="spinBtn" onclick="handleSpin()">
       🎰 GIRAR ROLETA!
     </button>
+
+    <!-- Prize showcase -->
+    <div class="prize-showcase" id="prizeShowcase"></div>
 
     <!-- Already spun today -->
     <div class="already-box" id="alreadyBox">
@@ -1238,6 +1260,21 @@ drawWheel(curAngle);
 // ══════════════════════════════════════════════
 // SLOT MACHINE
 // ══════════════════════════════════════════════
+function renderPrizeShowcase() {
+  const el = document.getElementById('prizeShowcase');
+  if (!el) return;
+  const prizes = (CFG.PRIZES || []).filter(p => !p.noWin);
+  if (!prizes.length) { el.innerHTML = ''; return; }
+  el.innerHTML =
+    '<div class="prize-showcase-title">🎁 Prêmios disponíveis hoje</div>' +
+    '<div class="prize-chips">' +
+    prizes.map(p =>
+      '<div class="prize-chip"><span class="prize-chip-emoji">' + (p.emoji||'🎁') + '</span>' +
+      '<span>' + (p.name||'Prêmio') + '</span></div>'
+    ).join('') +
+    '</div>';
+}
+
 function initGameMode() {
   // Sincroniza radio do admin com CFG
   const r = document.getElementById(CFG.GAME_MODE==='slots'?'modeSlots':'modeRoulette');
@@ -1250,6 +1287,7 @@ function initGameMode() {
   }
 }
 initGameMode();
+renderPrizeShowcase();
 
 function initSlotDisplay() {
   const p = (CFG.PRIZES||[]).find(x=>!x.noWin) || CFG.PRIZES[0];

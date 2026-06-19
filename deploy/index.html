@@ -221,6 +221,25 @@
     }
     .goto-btn:hover { background: var(--gold); }
 
+    /* ── PRIZE SHOWCASE ─────────────────────── */
+    .prize-showcase {
+      margin: 14px auto 0;
+      max-width: 420px;
+      padding: 0 12px;
+    }
+    .prize-showcase-title {
+      font-size: .72rem; letter-spacing: 2px; text-transform: uppercase;
+      color: rgba(255,255,255,.5); text-align: center; margin-bottom: 8px;
+    }
+    .prize-chips { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
+    .prize-chip {
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(0,0,0,.4); border: 1.5px solid rgba(255,223,0,.35);
+      border-radius: 20px; padding: 5px 12px 5px 8px;
+      font-size: .82rem; color: rgba(255,255,255,.85); font-weight: 600;
+    }
+    .prize-chip-emoji { font-size: 1.1rem; line-height: 1; }
+
     /* ── RESULT MODAL ────────────────────────── */
     .modal-overlay {
       display: none;
@@ -540,6 +559,9 @@
       🎰 GIRAR ROLETA!
     </button>
 
+    <!-- Prize showcase -->
+    <div class="prize-showcase" id="prizeShowcase"></div>
+
     <!-- Already spun today -->
     <div class="already-box" id="alreadyBox">
       <h3>✅ Você já girou hoje!</h3>
@@ -780,7 +802,7 @@ const CFG = {
   ADMIN_PASSWORD: 'HEXAADMIN',
   ACTIVE_DATES:   ["19062026"],   // Datas ativas — gerenciado pelo painel admin
   GAME_MODE: 'slots', // HEXA_MODE
-  PRIZES: [{"name":"Refrigerante","emoji":"🥤","qty":10,"color":"#FF6B6B","fg":"#fff","noWin":false},{"name":"Entrega Grátis","emoji":"🛵","qty":5,"color":"#4ECDC4","fg":"#003d15","noWin":false},{"name":"Pizza Media","emoji":"🍕","qty":2,"color":"#ff6b6b","fg":"#004d1a","noWin":false},{"name":"Pizza Doce","emoji":"🍰","qty":3,"color":"#FF9FF3","fg":"#003d15","noWin":false},{"name":"Não foi desta vez","emoji":"😅","qty":5,"color":"#333333","fg":"rgba(255,255,255,.5)","noWin":true}], // HEXA_PRIZES
+  PRIZES: [{"name":"Refrigerante","emoji":"🥤","qty":10,"color":"#37ff00","fg":"#fff","noWin":false,"couponCode":"HEXAREFRI"},{"name":"Entrega Grátis","emoji":"🛵","qty":5,"color":"#4ECDC4","fg":"#003d15","noWin":false,"couponCode":"HEXAENTREGA"},{"name":"Pizza Media","emoji":"🍕","qty":3,"color":"#1100ff","fg":"#004d1a","noWin":false,"couponCode":"HEXAMEDIA"},{"name":"Pizza Grande","emoji":"🍕","qty":2,"color":"#b3009b","fg":"#003d15","noWin":false,"couponCode":"HEXAGRANDE"},{"name":"5% de Desconto!","emoji":"🎁","qty":10,"color":"#888888","fg":"#fff","noWin":false,"couponCode":"HEXA5"}], // HEXA_PRIZES
   COUPON_LABEL: 'HEXAMEDIA', // HEXA_COUPON_LABEL
   COUPON_VALID: 'Válido hoje', // HEXA_COUPON_VALID
   COUPON_NOTE:  'Apresente esse código ao funcionário para resgatar seu prêmio', // HEXA_COUPON_NOTE
@@ -1238,6 +1260,21 @@ drawWheel(curAngle);
 // ══════════════════════════════════════════════
 // SLOT MACHINE
 // ══════════════════════════════════════════════
+function renderPrizeShowcase() {
+  const el = document.getElementById('prizeShowcase');
+  if (!el) return;
+  const prizes = (CFG.PRIZES || []).filter(p => !p.noWin);
+  if (!prizes.length) { el.innerHTML = ''; return; }
+  el.innerHTML =
+    '<div class="prize-showcase-title">🎁 Prêmios disponíveis hoje</div>' +
+    '<div class="prize-chips">' +
+    prizes.map(p =>
+      '<div class="prize-chip"><span class="prize-chip-emoji">' + (p.emoji||'🎁') + '</span>' +
+      '<span>' + (p.name||'Prêmio') + '</span></div>'
+    ).join('') +
+    '</div>';
+}
+
 function initGameMode() {
   // Sincroniza radio do admin com CFG
   const r = document.getElementById(CFG.GAME_MODE==='slots'?'modeSlots':'modeRoulette');
@@ -1250,6 +1287,7 @@ function initGameMode() {
   }
 }
 initGameMode();
+renderPrizeShowcase();
 
 function initSlotDisplay() {
   const p = (CFG.PRIZES||[]).find(x=>!x.noWin) || CFG.PRIZES[0];
