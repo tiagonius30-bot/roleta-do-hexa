@@ -769,13 +769,13 @@ const CFG = {
   START_HOUR:     9,             // Abre às 17h (horário Sinop/MT)
   END_HOUR:       23,             // Encerra às 23h (horário Sinop/MT)
   TIMEZONE:       'America/Cuiaba', // Fuso de Sinop-MT (UTC-4)
-  MENU_URL:       'https://costaneirasgrill.com.br/centro/pedidos?utm_source=META&utm_campaign=delivery',
+  MENU_URL: 'https://costaneirasgrill.com.br/centro/pedidos?utm_source=META&utm_campaign=delivery',
   ADMIN_USER:     'costaneiras',
   ADMIN_PASSWORD: 'HEXAADMIN',
-  ACTIVE_DATES:   [],   // Datas ativas — gerenciado pelo painel admin
+  ACTIVE_DATES:   ["19062026"],   // Datas ativas — gerenciado pelo painel admin
   GAME_MODE: 'slots', // HEXA_MODE
-  PRIZES: [{"name":"Refrigerante","emoji":"🥤","qty":10,"color":"#FF6B6B","fg":"#fff","noWin":false},{"name":"Entrega Grátis","emoji":"🛵","qty":5,"color":"#4ECDC4","fg":"#003d15","noWin":false},{"name":"Pizza Grande","emoji":"🍕","qty":2,"color":"#FFE66D","fg":"#004d1a","noWin":false},{"name":"Pizza Doce","emoji":"🍰","qty":3,"color":"#FF9FF3","fg":"#003d15","noWin":false},{"name":"Não foi desta vez","emoji":"😅","qty":5,"color":"#333333","fg":"rgba(255,255,255,.5)","noWin":true}], // HEXA_PRIZES
-  COUPON_LABEL: '🎁 Seu Prêmio', // HEXA_COUPON_LABEL
+  PRIZES: [{"name":"Refrigerante","emoji":"🥤","qty":10,"color":"#FF6B6B","fg":"#fff","noWin":false},{"name":"Entrega Grátis","emoji":"🛵","qty":5,"color":"#4ECDC4","fg":"#003d15","noWin":false},{"name":"Pizza Media","emoji":"🍕","qty":2,"color":"#ff6b6b","fg":"#004d1a","noWin":false},{"name":"Pizza Doce","emoji":"🍰","qty":3,"color":"#FF9FF3","fg":"#003d15","noWin":false},{"name":"Não foi desta vez","emoji":"😅","qty":5,"color":"#333333","fg":"rgba(255,255,255,.5)","noWin":true}], // HEXA_PRIZES
+  COUPON_LABEL: 'HEXAMEDIA', // HEXA_COUPON_LABEL
   COUPON_VALID: 'Válido hoje', // HEXA_COUPON_VALID
   COUPON_NOTE:  'Apresente esse código ao funcionário para resgatar seu prêmio', // HEXA_COUPON_NOTE
   COUPON_BTN:   '🍽️ VER CARDÁPIO', // HEXA_COUPON_BTN
@@ -820,7 +820,7 @@ const ALL_PRIZES = (() => {
     const pool = [];
     (CFG.PRIZES || []).forEach((p, pi) => {
       for (let i = 1; i <= (p.qty||0); i++) {
-        pool.push({ id:`${prizeSlug(p.name)}-${key}-${i}`, name:p.name,
+        pool.push({ id:`${(p.slug?p.slug.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10):prizeSlug(p.name))}-${key}-${i}`, name:p.name,
           emoji:p.emoji||'🎁', color:p.color||'#555', fg:p.fg||'#fff',
           noWin:!!p.noWin, prizeIdx:pi, dateKey:key });
       }
@@ -1588,7 +1588,7 @@ function rebuildPrizePool(){
     const pool=[];
     (CFG.PRIZES||[]).forEach((p,pi)=>{
       for(let i=1;i<=(p.qty||0);i++)
-        pool.push({id:`${prizeSlug(p.name)}-${key}-${i}`,name:p.name,emoji:p.emoji||'🎁',
+        pool.push({id:`${(p.slug?p.slug.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10):prizeSlug(p.name))}-${key}-${i}`,name:p.name,emoji:p.emoji||'🎁',
           color:p.color||'#555',fg:p.fg||'#fff',noWin:!!p.noWin,prizeIdx:pi,dateKey:key});
     });
     seededShuffle(pool,dayIdx*31337+9001);
@@ -1607,6 +1607,10 @@ function prizesRender(){
       <input type="text" value="${p.name||''}" placeholder="Nome do prêmio"
         oninput="cfgGetWorkingPrizes()[${i}].name=this.value"
         style="flex:1;min-width:110px;padding:6px 10px;border-radius:7px;border:1.5px solid rgba(255,223,0,.3);background:rgba(0,0,0,.4);color:#fff;font-size:.9rem;">
+      <input type="text" value="${p.slug||''}" maxlength="10"
+        placeholder="${prizeSlug(p.name||'PRIZE')}"
+        oninput="cfgGetWorkingPrizes()[${i}].slug=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+        style="width:90px;padding:6px 8px;border-radius:7px;border:1.5px solid rgba(100,200,255,.35);background:rgba(0,0,0,.4);color:#7be0ff;font-size:.82rem;font-family:monospace;font-weight:700;letter-spacing:1px;text-align:center;" title="Prefixo do código do cupom">
       <input type="number" value="${p.qty||1}" min="1" max="999" placeholder="Qtd/dia"
         oninput="cfgGetWorkingPrizes()[${i}].qty=parseInt(this.value)||1"
         style="width:62px;padding:6px;border-radius:7px;border:1.5px solid rgba(255,223,0,.3);background:rgba(0,0,0,.4);color:#fff;font-size:.9rem;text-align:center;" title="Quantidade por dia">
